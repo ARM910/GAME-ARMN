@@ -1,0 +1,5 @@
+(()=>{if('serviceWorker' in navigator && location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));}
+let deferred=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;let b=document.getElementById('armnInstall');if(b)b.hidden=false;});
+window.addEventListener('appinstalled',()=>{const b=document.getElementById('armnInstall');if(b)b.hidden=true;deferred=null;});
+window.addEventListener('DOMContentLoaded',()=>{const b=document.createElement('button');b.id='armnInstall';b.className='abtn';b.hidden=true;b.textContent='📲 تثبيت GAME ARMN على الهاتف';b.style.cssText='position:fixed;z-index:250;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);left:12px;right:12px;width:calc(100% - 24px);box-shadow:0 8px 30px #0008';b.onclick=async()=>{if(deferred){deferred.prompt();await deferred.userChoice;deferred=null;b.hidden=true}else{alert('من قائمة Chrome ⋮ اختر إضافة إلى الشاشة الرئيسية أو تثبيت التطبيق.')}};document.body.appendChild(b);});
+})();
