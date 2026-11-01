@@ -18,3 +18,9 @@ service-worker.js   كاش أوفلاين (v25)
 تعطيل الـ3D من الكونسول: APP3D.toggle(false)
 
 > ملاحظة: index.html في الجذر هو النسخة الأحدث (فيه إضافات مش موجودة بمجلد src). لا تشغّل build.py وإلا بتضيع، عدّل index.html مباشرة.
+
+---
+## الطبقة المميزة (Premium layer) — v35
+css/premium.css + js/premium.js : طبقة تصميم بصرية فقط (لا تلمس تسجيل الدخول/Firebase/الغرف).
+مضمّنة في آخر <head> وآخر <body> في index.html (ids: armn-premium-css / armn-premium-js).
+لإلغائها: احذف هذين الوسمين فقط فيرجع التصميم السابق.
