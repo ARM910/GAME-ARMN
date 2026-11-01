@@ -18,8 +18,8 @@ jobs:
 
       - name: Unpack game
         run: |
-          unzip -o GAME_ARMN_PWAA.zip -d .
-          rm GAME_ARMN_PWAA.zip
+          unzip -o GAME_ARMN_FIXED.zip -d .
+          rm GAME_ARMN_FIXED.zip
 
       - name: Commit files
         run: |
