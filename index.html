@@ -1491,6 +1491,29 @@ html[lang="en"] #hbGames .gc-go::after{content:"Play"}
 .pm-scene svg{transform:translateY(22px) scale(.86)!important}
 
 </style>
+<style id="armn-final">
+/* X-O board: no sticky white hover on touch, dark crystal glass cells */
+#xo .board{background:rgba(8,16,48,.55)!important;border-color:rgba(120,170,255,.35)!important}
+#xo .cell,#xo .cell:focus,#xo .cell:focus-visible{background:linear-gradient(160deg,rgba(34,66,160,.88),rgba(14,28,86,.92))!important;border:1px solid rgba(140,190,255,.3)!important;outline:none!important;box-shadow:none!important;-webkit-tap-highlight-color:transparent}
+#xo .cell:not(.fX):not(.fO):hover,#xo .cell:not(.fX):not(.fO):active{background:linear-gradient(160deg,rgba(34,66,160,.88),rgba(14,28,86,.92))!important}
+@media(hover:hover) and (pointer:fine){#xo .cell:not(.fX):not(.fO):hover{background:linear-gradient(160deg,rgba(90,150,255,.34),rgba(30,60,150,.45))!important;border-color:#7fb4ff!important}}
+#xo .cell::before,#xo .cell::after{background:none!important}
+/* crystal home hero + profile */
+.pm-hero{background:radial-gradient(70% 55% at 80% 18%,rgba(90,170,255,.38),transparent 65%),radial-gradient(60% 50% at 8% 88%,rgba(255,90,150,.32),transparent 70%),linear-gradient(165deg,#15183a,#0b0c1c 72%)!important;box-shadow:0 24px 60px -28px rgba(110,150,255,.9),inset 0 1px 0 rgba(255,255,255,.18)!important;border-color:rgba(160,200,255,.3)!important}
+.pm-hero h2 em{background:linear-gradient(90deg,#9fe0ff,#ff9cc6,#ffe08a)!important;-webkit-background-clip:text;background-clip:text}
+.pm-btn.solid{background:linear-gradient(135deg,#59b4ff,#a06bff)!important;border-color:transparent!important;box-shadow:0 8px 24px -6px rgba(110,130,255,.85)!important}
+.pf-hero{background:linear-gradient(160deg,rgba(120,170,255,.14),rgba(255,120,180,.08))!important;border-radius:26px;border:1px solid rgba(170,205,255,.28);backdrop-filter:blur(8px)}
+.pf-cover{background:linear-gradient(120deg,#1e3a8a,#7c3aed,#db2777,#0ea5e9)!important;background-size:300% 300%;animation:armnCry 9s ease-in-out infinite}
+.pf-s{background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.02))!important;border-color:rgba(170,205,255,.3)!important;clip-path:polygon(10% 0,100% 0,100% 88%,90% 100%,0 100%,0 12%)}
+.pf-g{background:rgba(120,160,255,.08)!important;border-color:rgba(170,205,255,.22)!important}
+.pf-lv{background:linear-gradient(135deg,#9fe0ff,#c9a6ff)!important;color:#10143a!important}
+.pm-hero h2 em{-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important}
+.hl-by .x,.hl-by .o{-webkit-box-reflect:none!important;font-weight:900;background-clip:text;-webkit-background-clip:text;color:transparent!important;text-shadow:none!important;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+.hl-by .x{background-image:linear-gradient(135deg,#d6f4ff,#3d8bff 55%,#1739a8)}
+.hl-by .o{background-image:linear-gradient(135deg,#ffe0ea,#ff4f86 55%,#8c0f3a)}
+@keyframes armnCry{50%{background-position:100% 50%}}
+@media(prefers-reduced-motion:reduce){.pf-cover{animation:none}}
+</style>
 </head>
 <body>
 <noscript><p style="font-family:sans-serif;color:#e7eef1;background:#0c1318;padding:24px;margin:0">GAME A R M N needs JavaScript enabled. | تحتاج اللعبة إلى تفعيل جافاسكربت.</p></noscript>
@@ -7798,11 +7821,10 @@ html .xo-player.talking .xo-fr.ring[class*="fr-"]:not(.fr-off){filter:drop-shado
     '<linearGradient id="pmfd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>' +
     '<mask id="pmfm" maskUnits="userSpaceOnUse" x="0" y="0" width="400" height="440"><rect width="400" height="440" fill="url(#pmfd)"/></mask>' +
     '<filter id="pmgl" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
-    '<g id="pmX"><path d="M262 92L342 172M342 92L262 172" stroke="url(#pmgx)" stroke-width="26" stroke-linecap="round" fill="none"/><path d="M262 92L342 172M342 92L262 172" stroke="url(#pmsh)" stroke-width="8" stroke-linecap="round" fill="none" transform="translate(-4,-5)"/></g>' +
-    '<g id="pmO"><circle cx="110" cy="190" r="62" fill="none" stroke="url(#pmgo)" stroke-width="24"/><path d="M62 170A52 52 0 0 1 120 138" fill="none" stroke="url(#pmsh)" stroke-width="7" stroke-linecap="round"/></g></defs>' +
-    '<g stroke="rgba(150,190,255,.16)" stroke-width="1" fill="none"><path d="M0 300H400M0 330H400M0 372H400M0 430H400"/><path d="M200 262L-60 440M200 262L60 440M200 262L180 440M200 262L220 440M200 262L340 440M200 262L460 440"/></g>' +
-    '<g class="xg"><g filter="url(#pmgl)" opacity=".55"><use href="#pmX"/></g><use href="#pmX"/><g mask="url(#pmfm)" opacity=".5" transform="translate(0,332) scale(1,-1)"><use href="#pmX"/></g></g>' +
-    '<g class="og"><g filter="url(#pmgl)" opacity=".55"><use href="#pmO"/></g><use href="#pmO"/><g mask="url(#pmfm)" opacity=".5" transform="translate(0,452) scale(1,-1)"><use href="#pmO"/></g></g>' +
+    '<g id="pmX"><path d="M262 92L342 172M342 92L262 172" stroke="#0e3aa8" stroke-width="28" stroke-linecap="round" fill="none"/><path d="M262 92L342 172M342 92L262 172" stroke="#2f8bff" stroke-width="20" stroke-linecap="round" fill="none"/><path d="M262 92L342 172M342 92L262 172" stroke="#7fe3ff" stroke-width="9" stroke-linecap="round" fill="none" transform="translate(-3,-3)"/><path d="M262 92L342 172M342 92L262 172" stroke="#fff" stroke-opacity=".9" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="16 70" fill="none" transform="translate(-5,-5)"/></g>' +
+    '<g id="pmO"><circle cx="110" cy="190" r="62" fill="none" stroke="#8c0f3a" stroke-width="28"/><circle cx="110" cy="190" r="62" fill="none" stroke="#ff4f86" stroke-width="20"/><circle cx="110" cy="190" r="62" fill="none" stroke="#ffb3cf" stroke-width="8" stroke-dasharray="150 240" transform="rotate(-150 110 190)"/><circle cx="110" cy="190" r="62" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="2.4" stroke-dasharray="18 372" transform="rotate(-120 110 190)"/></g></defs>' +
+    '<g class="xg"><use href="#pmX"/><path d="M350 84l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#bfeaff"/></g>' +
+    '<g class="og"><use href="#pmO"/><path d="M52 138l2.6 7 7 2.6-7 2.6-2.6 7-2.6-7-7-2.6 7-2.6z" fill="#ffd6e4"/></g>' +
     '<g fill="#fff" opacity=".8"><circle cx="40" cy="60" r="1.6"/><circle cx="170" cy="40" r="1.2"/><circle cx="370" cy="230" r="1.6"/><circle cx="220" cy="210" r="1.2"/><circle cx="60" cy="300" r="1.4"/></g></svg>';
   function heroHtml() {
     var thumbs = FEATURED.slice(0, 3).map(function (id) {
@@ -7968,8 +7990,8 @@ body::after{opacity:.18!important}
 @keyframes lgPulse{0%,100%{filter:drop-shadow(0 0 6px var(--g1,rgba(255,210,74,.55)))}50%{filter:drop-shadow(0 0 16px var(--g1,rgba(255,210,74,.9)))}}
 .hl-g span{background:linear-gradient(100deg,#ff6b8a,#ffd24a,#47f7b6,#4cc9ff,#ff6b8a)!important;background-size:300% 100%!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important;-webkit-text-fill-color:transparent!important;animation:lgShift 6s linear infinite,lgPulse 2.8s ease-in-out infinite!important;animation-delay:calc(var(--i)*-.4s)!important}
 .hl-a span:nth-child(1){color:#ff6b8a;--gl:255,107,138}.hl-a span:nth-child(2){color:#4cc9ff;--gl:76,201,255}.hl-a span:nth-child(3){color:#47f7b6;--gl:71,247,182}.hl-a span:nth-child(4){color:#ffd24a;--gl:255,210,74}
-.hl-by .x{color:#3d8bff;text-shadow:0 0 8px #3d8bff,0 0 18px #2f7bff;-webkit-box-reflect:below -2px linear-gradient(transparent 30%,rgba(61,139,255,.45))}
-.hl-by .o{color:#ff4a4a;text-shadow:0 0 8px #ff4a4a,0 0 18px #ee3b3b;-webkit-box-reflect:below -2px linear-gradient(transparent 30%,rgba(255,74,74,.45))}
+.hl-by .x{color:#3d8bff;text-shadow:0 0 8px #3d8bff,0 0 18px #2f7bff;-webkit-box-reflect:none}
+.hl-by .o{color:#ff4a4a;text-shadow:0 0 8px #ff4a4a,0 0 18px #ee3b3b;-webkit-box-reflect:none}
 .pm-scene .xg{animation:pmFloat 7s ease-in-out infinite,sceneGlow 3s ease-in-out infinite!important}
 .pm-scene .og{animation:pmFloat 8s ease-in-out -3s infinite,sceneGlow 3.4s ease-in-out -1s infinite!important}
 @keyframes sceneGlow{0%,100%{opacity:.88}50%{opacity:1}}
@@ -8004,5 +8026,15 @@ html:has(#xo:not([hidden])) #armnStars i,html:has(#xo:not([hidden])) #armnStars 
 #xo:not(.online-room) .board{width:min(100%,max(300px,calc(100dvh - 240px)),780px)!important;padding:2.2%!important;gap:2%!important}
 #xo:not(.online-room) .arena{min-height:0!important}
 </style>
+<style id="armn-xo-final">
+#xo .board .cell,#xo .board .cell:hover,#xo .board .cell:active,#xo .board .cell:focus,#xo .board .cell:focus-visible,#xo .board .cell:not(.fX):not(.fO):hover,#xo .board .cell:not(.fX):not(.fO):active{background:#16295e!important;background-image:none!important;border:1px solid rgba(140,190,255,.28)!important;box-shadow:none!important;outline:none!important;transform:none!important;filter:none!important;transition:none!important;-webkit-tap-highlight-color:transparent!important;-webkit-appearance:none;appearance:none;overflow:hidden}
+#xo .board .cell *,#xo .board .cell .mk,#xo .board .cell svg{filter:none!important;background:none!important;box-shadow:none!important}
+#xo .board .cell>i.pk{background:rgba(255,255,255,.42)!important}#xo .board .cell>i.pk2{background:#fff!important}
+#xo .board .cell.old .mk{animation:none!important;opacity:.45}
+#xo .board .cell.win.fX{background:#1d3f9c!important;border-color:#3b82f6!important}
+#xo .board .cell.win.fO{background:#5a1a2e!important;border-color:#ef4444!important}
+#xo .board .cell.tapglow{box-shadow:0 0 14px 1px rgba(110,170,255,.5)!important;border-color:#7fb4ff!important}
+</style>
+<script id="armn-xo-final-js">(function(){try{var b=document.getElementById('board');if(!b)return;var t;b.addEventListener('pointerdown',function(e){var c=e.target.closest&&e.target.closest('.cell');if(!c)return;c.classList.add('tapglow');clearTimeout(c._t);c._t=setTimeout(function(){c.classList.remove('tapglow')},260)},true);}catch(e){}})();</script>
 </body>
 </html>
