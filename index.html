@@ -2336,9 +2336,10 @@ const XO=(()=>{
   let xoCounted={room:null,wins:0};
   async function putXo(path,body){
     const api=window.armnOnlineApi;let off=0;try{off=+localStorage.getItem('armnhub:noav')||0}catch(_){}
-    if(Date.now()<off)return api.db('PUT',path,body);
+    const avSide=()=>{api.db('PATCH',path,{av:api.avatar}).catch(()=>{})};   /* a PUT wipes the node: always re-attach the avatar with its own small PATCH */
+    if(Date.now()<off){const r=await api.db('PUT',path,body);avSide();return r}
     try{return await api.db('PUT',path,Object.assign({av:api.avatar,fr:api.frame||''},body))}
-    catch(e){if(e&&(e.status===401||e.status===403||e.status===400)){try{localStorage.setItem('armnhub:noav',String(Date.now()+864e5))}catch(_){}return api.db('PUT',path,body)}throw e}
+    catch(e){if(e&&(e.status===401||e.status===403||e.status===400)){if(e.status!==401){try{localStorage.setItem('armnhub:noav',String(Date.now()+6e5))}catch(_){}}const r=await api.db('PUT',path,body);avSide();return r}throw e}
   }
   async function saveXoRank(room,opts2){
     opts2=opts2||{};
@@ -5184,11 +5185,17 @@ let syT;
 /* PUT that also publishes the player's avatar ("av"); if the database rules reject the extra field we retry without it for a day */
 async function putAv(path,body,o){
   let off=0;try{off=+localStorage.getItem('armnhub:noav')||0}catch(e){}
-  if(Date.now()<off)return db('PUT',path,body,o);
   const u=me(),av=u&&Number.isInteger(+u.avatar)?+u.avatar:0;
+  /* a PUT replaces the whole node (it would wipe the avatar): when the avatar is not inside the PUT, re-attach it with its own small PATCH */
+  const side=()=>{db('PATCH',path,{av}).then(()=>{try{localStorage.removeItem('armnhub:noav')}catch(_){}}).catch(()=>{})};
+  if(Date.now()<off){const r=await db('PUT',path,body,o);side();return r}
   try{return await db('PUT',path,Object.assign({av},body),o)}
-  catch(e){if(e&&(e.status===400||e.status===401||e.status===403)){if(e.status!==401){try{localStorage.setItem('armnhub:noav',String(Date.now()+36e5))}catch(_){}}return db('PUT',path,body,o)}throw e}
+  catch(e){if(e&&(e.status===400||e.status===401||e.status===403)){if(e.status!==401){try{localStorage.setItem('armnhub:noav',String(Date.now()+6e5))}catch(_){}}const r=await db('PUT',path,body,o);side();return r}throw e}
 }
+/* one-time self check: is my avatar really visible to other players? (tells the owner when the Firebase rules block it) */
+let avChk=0;
+function chkAv(){if(avChk||!sess)return;avChk=1;setTimeout(async()=>{try{const u=me();if(!u||!sess)return;const v=await db('GET','lb/points/'+sess.u,undefined,{auth:false}),mine=Number.isInteger(+u.avatar)?+u.avatar:0;
+  if(v&&!(Number.isInteger(+v.av)&&+v.av===mine)){avChk=2;try{console.warn('[GAME ARMN] your avatar is not stored in lb/points/'+sess.u+'/av — add an "av" (number 0-40) rule in Firebase')}catch(_){}if(isOwnerName(sess.u))say(L('⚠️ صورتك لا تظهر للآخرين: أضف قاعدة av في Firebase','⚠️ Others cannot see your avatar: add the av rule in Firebase'))}}catch(e){}},4000)}
 function save(meta){const u=me();if(!u)return;if(meta!==false)u.t=Date.now();sv('prof',u);if(!sess)return;clearTimeout(syT);syT=setTimeout(()=>push(),800)}
 /* ---- shop data never gets lost: purchases are UNIONED between this device and the cloud, and a second copy rides inside "prog" ---- */
 const shopSnap=u=>({own:u.own,eq:u.eq,fr:u.fr||'',cv:u.cv||'',avatar:Number.isInteger(+u.avatar)?+u.avatar:0,at:u.at|0,pts:u.pts|0,t:u.t|0});
@@ -5241,7 +5248,8 @@ async function push(ka){
         try{await db('PUT','users/'+sess.uid,w,{ka})}catch(e2){if(e2&&(e2.status===400||e2.status===401||e2.status===403)){delete w.cv;delete w.own;delete w.eq;delete w.fr;await db('PUT','users/'+sess.uid,w,{ka})}else throw e2}}
       else throw e}
     await putAv('lb/points/'+sess.u,{n:sess.u,pts:u.tot|0,fr:frOk(u.fr)},{ka}).catch(()=>{});
-    if(cvOk(u.cv)&&u.cv!==lastCvPub){try{await db('PATCH','lb/points/'+sess.u,{cv:cvOk(u.cv)});lastCvPub=u.cv}catch(e){}}
+    if(cvOk(u.cv)){try{await db('PATCH','lb/points/'+sess.u,{cv:cvOk(u.cv)});lastCvPub=u.cv}catch(e){}}
+    chkAv();
     sv('prof',u);pushFails=0;lastPushT=u.t;lastPushAt=u.at;return true;
   }catch(e){
     pushFails++;if(!ka)pushRetry();
@@ -6019,6 +6027,7 @@ function recordRecent() {
    RANKING — avatars next to every score
    ============================================================ */
 const RB = { cache: {}, avc: {}, frc: {}, avt: {} };
+const RKS = new Set(); /* every ranking list currently mounted (home panel + opened sheet) so a change refreshes all of them */
 const BADN = ['__proto__', 'constructor', 'prototype', 'hasownproperty', 'tostring'];
 const validName = n => /^[a-z0-9_]{3,16}$/.test(n) && !BADN.includes(n);
 const dbGet = (p, q) => API.db('GET', p, undefined, { auth: false, q });
@@ -6269,7 +6278,9 @@ function mountRank(host, o) {
   });
   host.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('.rk-add input')) addFriend(); else if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-p]')) { e.preventDefault(); openProfile(e.target.dataset.p, () => { window.armnOpenRanking(st.kind); }); } });
   load();
-  return { reload() { delete RB.cache[st.kind]; load(); }, set(k) { st.kind = k; load(); } };
+  const inst = { reload() { delete RB.cache[st.kind]; load(); }, set(k) { st.kind = k; load(); } };
+  RKS.add({ host, inst });
+  return inst;
 }
 /* ===== player profile: opened from any ranking row ===== */
 async function openProfile(name, back) {
@@ -6425,7 +6436,7 @@ function mountDemo(host) {
    HOME DASHBOARD
    ============================================================ */
 let hub, rankMount = null;
-const refreshRank = () => { if (rankMount) rankMount.reload(); };
+const refreshRank = () => { RKS.forEach(r => { if (!D.body.contains(r.host)) { RKS.delete(r); return; } try { r.inst.reload(); } catch (e) {} }); };
 function gamesFromLegacy() {
   const map = {};
   $$('#home .gcard').forEach(a => {
@@ -6709,6 +6720,7 @@ function boot() {
   });
   addEventListener('online', renderProfile); addEventListener('offline', renderProfile);
   setInterval(() => { if (onHome() && !D.hidden) renderGames(); }, 20000);
+  setInterval(() => { if (!D.hidden) refreshRank(); }, 45000);
   /* pending avatar from a guest session is applied once they log in */
   recordRecent();
 }
