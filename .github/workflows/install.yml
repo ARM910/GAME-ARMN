@@ -18,8 +18,8 @@ jobs:
 
       - name: Unpack game
         run: |
-          unzip -o GAME_ARMN_FIXED.zip -d .
-          rm GAME_ARMN_FIXED.zip
+          unzip -o GAME_ARMN_FIXE.zip -d .
+          rm GAME_ARMN_FIXE.zip
 
       - name: Commit files
         run: |
