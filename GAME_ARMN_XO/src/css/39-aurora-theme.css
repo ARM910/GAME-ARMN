@@ -1,0 +1,116 @@
+
+/* ==========================================================================
+   GAME ARMN — "Aurora Nebula" theme  (loaded LAST)
+   1) new site palette (violet · fuchsia · teal)       2) ONE shared background for every page
+   3) X-O game colours pinned to their original values 4) room dialog (sheet) on the home screen
+   ========================================================================== */
+:root{
+  --bg:#0b0817; --bg2:#120e24; --panel:#17122e; --panel2:#231a45; --line:rgba(167,139,250,.28);
+  --fg:#f4f1ff; --mut:#b9aee0; --ink:#12091f; --txt:#f4f1ff;
+  --acc:#a78bfa; --neon:#a78bfa; --sky:#a78bfa; --cyan:#67e8d6; --coral:#f472b6; --pink:#f472b6; --vio:#a78bfa; --rose:#f472b6;
+  --vio-a:rgba(167,139,250,.16); --sand:#e9d5ff;
+  --cp:#a78bfa; --cp2:#d8c9ff; --cp3:#6d4fd6; --ch0:#080612; --ch1:#0d0a1d; --ch2:#130f28; --ch3:#1d1638; --gr:#a79fc4;
+  --pm-bg:#0b0817; --pm-bg2:#120e24; --pm-deep:#2a1f52; --pm-elec:#8b5cf6; --pm-cyan:#c4b5fd;
+  --pm-glass:linear-gradient(160deg,rgba(64,48,120,.46),rgba(16,11,36,.74));
+  --pm-line:rgba(167,139,250,.26); --pm-line2:rgba(196,181,253,.5);
+  --aur-a:#8b5cf6; --aur-b:#ec4899; --aur-c:#22d3ee;
+}
+
+/* ---------- ONE background for home, X-O and every other page ---------- */
+html,body,html:has(#xo:not([hidden])) body,body:has(#xo:not([hidden])){background:#0b0817!important}
+body::before,body:has(#xo:not([hidden]))::before{
+  content:""!important;position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(62% 44% at 88% -6%,rgba(139,92,246,.40),transparent 70%),
+    radial-gradient(52% 40% at -4% 30%,rgba(236,72,153,.20),transparent 70%),
+    radial-gradient(60% 42% at 96% 72%,rgba(34,211,238,.13),transparent 72%),
+    radial-gradient(80% 50% at 40% 112%,rgba(76,45,160,.50),transparent 70%),
+    radial-gradient(rgba(196,181,253,.13) 1px,transparent 1.5px) 0 0/28px 28px!important;
+  -webkit-mask-image:linear-gradient(#000 55%,rgba(0,0,0,.55));mask-image:linear-gradient(#000 55%,rgba(0,0,0,.55));
+}
+/* soft drifting clouds (home) — frozen, same look, in the game screen */
+#armnPlasma{opacity:.5}
+#armnPlasma i{mix-blend-mode:normal}
+#armnPlasma i:nth-child(1){background:radial-gradient(circle,rgba(139,92,246,.34) 0,rgba(139,92,246,.10) 40%,transparent 68%)}
+#armnPlasma i:nth-child(2){background:radial-gradient(circle,rgba(34,211,238,.20) 0,rgba(34,211,238,.07) 40%,transparent 68%)}
+#armnPlasma i:nth-child(3){background:radial-gradient(circle,rgba(236,72,153,.22) 0,rgba(236,72,153,.07) 40%,transparent 68%)}
+html.imm:not(.perf-lite) #armnPlasma{display:block}
+#armnStars{display:none!important}
+
+/* ---------- home: fresh look for the two big buttons + cards ---------- */
+.xh-btn{background:linear-gradient(160deg,rgba(76,56,140,.55),rgba(16,11,36,.88));border-color:rgba(196,181,253,.38)}
+.xh-btn.create{background:linear-gradient(135deg,#8b5cf6 0%,#c026d3 55%,#ec4899 100%);color:#fff;border-color:transparent;box-shadow:0 16px 38px -14px rgba(192,38,211,.75)}
+.xh-btn.create .xh-ic{background:rgba(255,255,255,.22)}
+.xh-btn.join{border-color:rgba(103,232,214,.45);box-shadow:0 14px 34px -18px rgba(34,211,238,.6)}
+.xh-btn.join .xh-ic{background:rgba(103,232,214,.14);color:#67e8d6}
+.xh-btn:hover{border-color:rgba(255,255,255,.55)}
+.xh-rank{background:linear-gradient(170deg,rgba(64,46,120,.50),rgba(14,10,32,.82));border-color:rgba(167,139,250,.26)}
+.btn.primary{background:linear-gradient(135deg,#8b5cf6,#c026d3);border-color:transparent;color:#fff}
+.xo-online-panel .btn.primary,.xo-mode button.on{background:linear-gradient(135deg,#8b5cf6,#c026d3);color:#fff}
+#xo .btn.primary{background:var(--acc);border-color:var(--acc);color:var(--ink)}
+
+/* ---------- X-O: keep ITS colours exactly as they were (only the page background changed) ---------- */
+#xo{
+  --bg:#121110; --bg2:#171513; --panel:#12294f; --panel2:#183462; --line:rgba(150,195,255,.22);
+  --fg:#efe9e2; --mut:#9db8e0; --ink:#14110f; --neon:#5f9bff;
+  --sky:#dba376; --cyan:#e2b183; --coral:#ff9d8a; --pink:#d69967; --vio:#d9a06a; --rose:#d9a27a; --sand:#e3b98a; --vio-a:rgba(219,163,118,.16);
+  --cp:#c98a54; --cp2:#e2b183; --cp3:#8f5b33; --ch0:#0f0e0d; --ch1:#161412; --ch2:#1e1b18; --ch3:#2a2622; --gr:#a29a90;
+  --pm-bg:#0e0c0b; --pm-bg2:#181614; --pm-deep:#3b3531; --pm-elec:#c98a54; --pm-cyan:#e2b183;
+  --pm-glass:linear-gradient(160deg,rgba(74,67,62,.46),rgba(26,23,22,.72));
+  --pm-line:rgba(219,163,118,.24); --pm-line2:rgba(219,163,118,.5);
+}
+
+/* ---------- room dialog: opens right on top of the page you are on ---------- */
+html.rm-open,html.rm-open body{overflow:hidden}
+.rm-sheet{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center}
+.rm-sheet[hidden]{display:none!important}
+.rm-back{position:absolute;inset:0;background:rgba(5,3,14,.66);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);animation:rmFade .22s ease both}
+.rm-sheet .xo-online-panel{
+  position:relative;width:min(560px,100%);max-height:92dvh;overflow:auto;margin:0;box-sizing:border-box;
+  padding:8px 18px calc(22px + env(safe-area-inset-bottom,0px));
+  border-radius:28px 28px 0 0!important;border:1px solid rgba(196,181,253,.32)!important;border-bottom:0!important;
+  background:radial-gradient(90% 50% at 85% 0,rgba(139,92,246,.30),transparent 70%),linear-gradient(170deg,#1e1640,#0f0a22)!important;
+  box-shadow:0 -24px 60px -20px rgba(139,92,246,.55)!important;animation:rmUp .34s cubic-bezier(.2,.8,.2,1) both;color:var(--fg);
+}
+.rm-sheet .xo-online-panel[hidden]{display:none!important}
+.rm-grab{width:44px;height:5px;border-radius:5px;background:rgba(255,255,255,.22);margin:4px auto 10px}
+.rm-ttl{display:flex;align-items:center;gap:10px}
+.rm-ttl h3{margin:0;font-size:clamp(20px,5.4vw,25px)}
+.rm-ic{display:grid;place-items:center;width:40px;height:40px;border-radius:13px;background:linear-gradient(135deg,#8b5cf6,#ec4899);font-size:19px;box-shadow:0 8px 20px -8px rgba(236,72,153,.8)}
+.rm-sheet .xo-online-panel input,.rm-sheet .xo-online-panel select{background:rgba(255,255,255,.06);border-color:rgba(196,181,253,.3);color:var(--fg)}
+.rm-sheet .xo-online-panel select option{background:#1a1336;color:#f4f1ff}
+.rm-sheet .xo-online-panel input:focus,.rm-sheet .xo-online-panel select:focus{outline:2px solid #a78bfa;outline-offset:1px}
+.rm-sheet .xo-online-actions>.btn{flex:1 1 100%;min-height:50px;font-size:16px;font-weight:800;border-radius:15px}
+.rm-switch{display:block;width:100%;margin-top:10px;padding:12px;border:0;background:none;color:#c4b5fd;font:inherit;font-size:14px;font-weight:700;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+.rm-sheet .xo-online-status{background:rgba(255,255,255,.06)}
+@keyframes rmUp{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes rmFade{from{opacity:0}to{opacity:1}}
+@media(min-width:700px){.rm-sheet{align-items:center}.rm-sheet .xo-online-panel{border-radius:28px!important;border-bottom:1px solid rgba(196,181,253,.32)!important}}
+@media(prefers-reduced-motion:reduce){.rm-sheet .xo-online-panel,.rm-back{animation:none}}
+
+/* ---------- home: player card (opens the player menu) ---------- */
+.xh-top{justify-content:space-between}
+.xh-brandmini{font:900 15px var(--display);letter-spacing:.14em;color:#e9defd;direction:ltr}.xh-brandmini i{font-style:normal;color:#c4b5fd}
+.xh .pc.xh-pc{width:100%;position:relative;cursor:pointer;grid-template-columns:auto minmax(0,1fr) auto;column-gap:14px;padding:14px 16px;border-radius:22px;border:1px solid rgba(196,181,253,.32)!important;box-shadow:0 18px 40px -24px rgba(139,92,246,.7)}
+.xh .pc.xh-pc:focus-visible{outline:3px solid #c4b5fd;outline-offset:3px}
+.xh .pc-ring{width:64px;height:64px}
+.xh .pc-name{font-size:18px;display:flex;align-items:center;gap:6px}.xh .pc-name .js-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xh .pc-bio{font-size:12px;color:#c9bfee}
+.xh-pc-more{position:absolute;top:10px;inset-inline-end:12px;opacity:.55;pointer-events:none}.xh-pc-more .ic{width:18px;height:18px}
+.xh .pc-row{grid-area:coin;align-self:start;margin-inline-end:26px}
+.xh .pc-lv .xp-bar{background:linear-gradient(90deg,#22d3ee,#a78bfa,#ec4899);box-shadow:0 0 10px rgba(167,139,250,.7)}
+.xh .pc-guest[hidden],.xh .pc-lv[hidden],.xh .pc-row[hidden]{display:none!important}
+.vf{flex:none;vertical-align:-3px;filter:drop-shadow(0 0 6px rgba(29,155,240,.55))}
+.pf-nm .vf,.mm-n .vf{margin-inline-start:4px}
+.mm-n{display:inline-flex;align-items:center;justify-content:center;gap:2px}
+/* ---------- profile sheet: bio + extra stat ---------- */
+.pf-bio{margin:2px 0 0;max-width:90%;text-align:center;font-size:13px;color:#d6ccf3}
+.pf-stats{grid-template-columns:repeat(3,1fr)}
+.pf-nm{display:flex;align-items:center;justify-content:center}
+/* ---------- developer card at the bottom ---------- */
+.oc{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:20px;border:1px solid rgba(196,181,253,.28);background:linear-gradient(160deg,rgba(76,56,140,.45),rgba(16,11,36,.85))}
+.oc-av{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:15px;font:900 21px var(--display);color:#fff;background:linear-gradient(135deg,#8b5cf6,#ec4899);box-shadow:0 8px 20px -8px rgba(236,72,153,.8)}
+.oc-t{display:flex;flex-direction:column;min-width:0;flex:1}.oc-t b{display:flex;align-items:center;gap:6px;font-size:15px}.oc-t small{opacity:.7;font-size:12px}
+.oc-btn{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border-radius:13px;border:1px solid rgba(196,181,253,.4);background:rgba(255,255,255,.07);color:var(--fg);font-weight:700;font-size:13px;font-family:inherit;cursor:pointer}
+.oc-btn .ic{width:18px;height:18px}
+.oc-list{display:flex;flex-direction:column;gap:8px}.oc-list a{text-decoration:none;color:inherit}

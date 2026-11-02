@@ -1,0 +1,13 @@
+
+.xo-voice{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:nowrap;margin:6px 0 0}
+.xo-voice[hidden]{display:none}
+.xv-mic{width:46px;height:46px;flex:0 0 46px;border-radius:50%;border:2px solid rgba(255,255,255,.45);background:linear-gradient(145deg,#834fdd,#3e2e5a);color:#fff;font-size:21px;line-height:1;display:grid;place-items:center;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;box-shadow:0 6px 14px -6px #000;transition:transform .12s,background .2s;padding:0}
+.xv-mic:disabled{opacity:.4;filter:grayscale(.8);cursor:not-allowed}
+.xv-mic.on{background:linear-gradient(145deg,#ff3d6a,#6026c4);transform:scale(1.1);animation:xvPulse 1s ease-out infinite}
+.xv-mic.lock{border-color:#ffd24a}
+@keyframes xvPulse{0%{box-shadow:0 0 0 0 rgba(255,61,106,.75)}100%{box-shadow:0 0 0 16px rgba(255,61,106,0)}}
+.xv-spk{width:36px;height:36px;flex:0 0 36px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.08);color:#fff;font-size:16px;cursor:pointer;display:grid;place-items:center;padding:0}
+.xv-st{flex:1 1 auto;min-width:0;text-align:start;font-size:11.5px;line-height:1.25;color:var(--mut);max-height:2.5em;overflow:hidden}
+.xo-player.talking .xo-avatar{box-shadow:0 0 0 3px #6fe3b0,0 0 20px #6fe3b0;animation:xvTalk .8s ease-in-out infinite alternate}
+.xo-player.talking .xo-fr.ring{filter:drop-shadow(0 0 8px #6fe3b0)}
+@keyframes xvTalk{to{box-shadow:0 0 0 5px #6fe3b0,0 0 30px #6fe3b0}}
