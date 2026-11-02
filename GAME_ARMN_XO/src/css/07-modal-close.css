@@ -1,5 +1,0 @@
-
-.armn-x{position:sticky;top:6px;z-index:40;display:grid;place-items:center;width:42px;height:42px;margin:0 0 -42px;margin-inline-start:auto;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(255,61,106,.92);color:#fff;font:800 20px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 18px -4px rgba(0,0,0,.7);-webkit-tap-highlight-color:transparent}
-.armn-x:active{transform:scale(.9)}
-.amod .bx>#aX,.amod .bx>#cX,.amod .bx>#bX,.about .box>#abClose{display:none}
-.amod .bx>h2:first-of-type{padding-inline:46px}

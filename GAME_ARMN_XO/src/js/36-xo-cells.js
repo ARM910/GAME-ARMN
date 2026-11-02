@@ -1,1 +1,0 @@
-(function(){try{var b=document.getElementById('board');if(!b)return;var t;b.addEventListener('pointerdown',function(e){var c=e.target.closest&&e.target.closest('.cell');if(!c)return;c.classList.add('tapglow');clearTimeout(c._t);c._t=setTimeout(function(){c.classList.remove('tapglow')},260)},true);}catch(e){}})();
