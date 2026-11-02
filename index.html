@@ -41,6 +41,45 @@
 <meta name="twitter:description" content="GAME A R M N — 10 free modern games (X-O, Snake, Maze, Orbit, Bricks, Runner, 2048, Memory, Blocks, Gravity Flip). Arabic & English, touch, 60 FPS, works offline. By Ahmed Abu Muslim.">
 <!-- After hosting, add:  <link rel="canonical" href="YOUR-URL">  <meta property="og:url" content="YOUR-URL">  and your Search Console verification meta tag. -->
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": ["WebApplication", "VideoGame"], "name": "GAME A R M N", "alternateName": ["GAME ARMN", "ARMN GAME", "Game armn", "ألعاب أحمد أبو مسلم", "العاب احمد ابو مسلم"], "description": "A free collection of 10 modern browser games: online vanishing X-O, Snake, 30-level Maze, Orbit, Bricks, Runner, 2048, Memory, Blocks and Gravity Flip. Works offline, touch-friendly, 60 FPS, Arabic and English.", "applicationCategory": "GameApplication", "genre": "Arcade", "operatingSystem": "Any (modern web browser)", "browserRequirements": "Requires JavaScript and HTML5 canvas", "inLanguage": ["ar", "en"], "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "author": {"@type": "Person", "name": "Ahmed Abu Muslim"}, "creator": {"@type": "Person", "name": "Ahmed Abu Muslim"}, "copyrightHolder": {"@type": "Person", "name": "Ahmed Abu Muslim"}, "copyrightYear": 2026, "license": "https://opensource.org/licenses/MIT", "playMode": "SinglePlayer", "gamePlatform": "Web browser"}</script>
+<script id="armn-perf-core">
+/* GAME ARMN — performance core: frame-rate governor (30/60/90) + modes (lite / normal / ultra).
+   Wraps requestAnimationFrame BEFORE any other script runs, so every game loop obeys the chosen cap. */
+(function(){
+  var KEY='armn:perf', root=document.documentElement, st={fps:60,mode:'normal'};
+  try{var j=JSON.parse(localStorage.getItem(KEY)||'null');if(j){if(j.fps===30||j.fps===60||j.fps===90)st.fps=j.fps;if(j.mode==='lite'||j.mode==='ultra'||j.mode==='normal')st.mode=j.mode}
+    else{var weak=(navigator.hardwareConcurrency||8)<=4||(navigator.deviceMemory||8)<=2;if(weak)st.mode='lite'}}catch(e){}
+  var nraf=window.requestAnimationFrame.bind(window), q=new Map(), nid=0, pending=0, last=0;
+  function ivl(){ if(st.fps>=90) return 0; return (1000/st.fps)*0.7; }
+  function tick(ts){
+    pending=0; var iv=ivl();
+    if(iv && last && ts-last<iv){ if(q.size){pending=1;nraf(tick)} return; }
+    last=ts; var list=Array.from(q); q.clear();
+    for(var i=0;i<list.length;i++){ try{ list[i][1](ts) }catch(e){ setTimeout(function(er){throw er}.bind(null,e)) } }
+    if(q.size&&!pending){pending=1;nraf(tick)}
+  }
+  window.requestAnimationFrame=function(cb){ var id=++nid; q.set(id,cb); if(!pending){pending=1;nraf(tick)} return id };
+  window.cancelAnimationFrame=function(id){ q.delete(id) };
+  function apply(){
+    root.classList.toggle('perf-lite',st.mode==='lite');
+    root.classList.toggle('perf-ultra',st.mode==='ultra');
+    root.classList.toggle('d3-off',st.mode==='lite');
+    root.setAttribute('data-fps',String(st.fps));
+    try{document.dispatchEvent(new CustomEvent('armnperf',{detail:{fps:st.fps,mode:st.mode}}))}catch(e){}
+  }
+  /* canvas glow (shadowBlur) is the most expensive 2D operation in the games: halve it in normal mode, drop it in lite, keep it full in ultra */
+  try{
+    var P2=CanvasRenderingContext2D.prototype,d=Object.getOwnPropertyDescriptor(P2,'shadowBlur');
+    if(d&&d.set){Object.defineProperty(P2,'shadowBlur',{configurable:true,enumerable:d.enumerable,get:d.get,
+      set:function(v){var m=st.mode==='lite'?0:(st.mode==='ultra'?1:0.5);d.set.call(this,(+v||0)*m)}})}
+  }catch(e){}
+  window.ARMN_PERF={
+    get:function(){return {fps:st.fps,mode:st.mode}},
+    set:function(o){ if(o.fps===30||o.fps===60||o.fps===90)st.fps=o.fps; if(o.mode==='lite'||o.mode==='ultra'||o.mode==='normal')st.mode=o.mode;
+      try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){} apply(); }
+  };
+  apply();
+})();
+</script>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1394927920038850"
      crossorigin="anonymous"></script>
 <style>[hidden]{display:none!important}html,body{margin:0}</style>
@@ -1285,6 +1324,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     linear-gradient(90deg,rgba(219,163,118,.045) 1px,transparent 1px) 0 0/44px 44px;
   -webkit-mask-image:linear-gradient(#000 60%,transparent);mask-image:linear-gradient(#000 60%,transparent)}
 .app,#hub{position:relative;z-index:1}
+html.dr-open .app,html.dr-open .app .screen,html.dr-open #xo{z-index:auto!important}
 
 /* ---------- section headings ---------- */
 .pm-sec{margin:22px 0 0}
@@ -1514,9 +1554,29 @@ html[lang="en"] #hbGames .gc-go::after{content:"Play"}
 @keyframes armnCry{50%{background-position:100% 50%}}
 @media(prefers-reduced-motion:reduce){.pf-cover{animation:none}}
 </style>
+<style id="armn-plasma-css">
+/* ===== calm plasma ambience: three huge soft colour clouds drifting very slowly (transform-only = GPU cheap) ===== */
+#armnPlasma{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;opacity:.55;contain:strict}
+#armnPlasma i{position:absolute;display:block;border-radius:50%;will-change:transform;mix-blend-mode:screen}
+#armnPlasma i:nth-child(1){width:70vmax;height:70vmax;left:-22vmax;top:-18vmax;background:radial-gradient(circle,rgba(219,150,92,.34) 0,rgba(219,150,92,.12) 38%,transparent 68%);animation:plA 52s ease-in-out infinite alternate}
+#armnPlasma i:nth-child(2){width:62vmax;height:62vmax;right:-24vmax;top:18vh;background:radial-gradient(circle,rgba(86,190,196,.26) 0,rgba(86,190,196,.09) 40%,transparent 68%);animation:plB 64s ease-in-out infinite alternate}
+#armnPlasma i:nth-child(3){width:58vmax;height:58vmax;left:8vw;bottom:-30vmax;background:radial-gradient(circle,rgba(238,120,104,.22) 0,rgba(238,120,104,.07) 40%,transparent 68%);animation:plC 76s ease-in-out infinite alternate}
+@keyframes plA{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(14vw,10vh,0) scale(1.12)}100%{transform:translate3d(4vw,22vh,0) scale(.95)}}
+@keyframes plB{0%{transform:translate3d(0,0,0) scale(1.05)}50%{transform:translate3d(-16vw,12vh,0) scale(.92)}100%{transform:translate3d(-6vw,-10vh,0) scale(1.1)}}
+@keyframes plC{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(18vw,-14vh,0) scale(1.15)}100%{transform:translate3d(-8vw,-6vh,0) scale(1.02)}}
+/* gentle plasma shimmer on cards when hovered / focused */
+@media (hover:hover){.gc,.pc{transition:box-shadow .5s ease,border-color .5s ease}
+ .gc:hover{box-shadow:0 0 0 1px rgba(110,200,205,.25),0 8px 34px -8px rgba(219,150,92,.35),0 0 46px -12px rgba(86,190,196,.35)}}
+/* off in Lite mode, in immersive full-screen games, and for people who prefer reduced motion */
+html.perf-lite #armnPlasma,html.imm #armnPlasma{display:none}
+html.perf-lite #armnPlasma i,html.imm #armnPlasma i{animation:none!important}
+@media (prefers-reduced-motion:reduce){#armnPlasma i{animation:none!important}}
+@media (max-width:700px){#armnPlasma{opacity:.45}#armnPlasma i:nth-child(3){display:none}}
+</style>
 </head>
 <body>
 <noscript><p style="font-family:sans-serif;color:#e7eef1;background:#0c1318;padding:24px;margin:0">GAME A R M N needs JavaScript enabled. | تحتاج اللعبة إلى تفعيل جافاسكربت.</p></noscript>
+<div id="armnPlasma" aria-hidden="true"><i></i><i></i><i></i></div>
 <canvas id="fx" aria-hidden="true"></canvas>
 <div class="scrim" id="scrim"></div>
 <div class="app">
@@ -2784,7 +2844,7 @@ const XO=(()=>{
 
 /* ---------- Snake: 60 FPS canvas, smooth interpolation ---------- */
 const SN=(()=>{
-  const opts=Object.assign({size:20,speed:'normal',walls:'solid',obst:false,power:true,ramp:true,dpad:COARSE,fps:true,skin:'mint',haptic:true},store.get('snake-opts',{}));
+  const opts=Object.assign({size:20,speed:'normal',walls:'solid',obst:false,power:true,ramp:true,dpad:false,fps:true,skin:'mint',haptic:true},store.get('snake-opts',{}));
   const buzz=ms=>{if(opts.haptic&&navigator.vibrate){try{navigator.vibrate(ms)}catch(e){}}};
   const STEP={chill:150,normal:112,fast:82,insane:56};
   const cv=$('#cv'),ctx=cv.getContext('2d'),wrap=$('#cvWrap'),ov=$('#snOv');
@@ -3025,7 +3085,7 @@ const SN=(()=>{
 /* ---------- Maze: 30 levels, 60 FPS ---------- */
 const MZ=(()=>{
   const SPEED=6.2,VIEW=15,DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
-  const opts=Object.assign({lives:3,hints:true,map:true,fog:true,unlock:false,dpad:COARSE,fps:true},store.get('maze-opts',{}));
+  const opts=Object.assign({lives:3,hints:true,map:true,fog:true,unlock:false,dpad:false,fps:true},store.get('maze-opts',{}));
   let prog=store.get('maze-prog',null);
   if(!prog||!Array.isArray(prog.stars)||prog.stars.length!==30)prog={stars:Array(30).fill(0),time:Array(30).fill(0)};
   if(!Array.isArray(prog.time))prog.time=Array(30).fill(0);
@@ -3739,7 +3799,7 @@ function arcade(def){
   const id=def.id,pair=p=>lang==='ar'?p[0]:p[1];
   const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
   const lbl=p=>'<span data-ar="'+esc(p[0])+'" data-en="'+esc(p[1])+'">'+esc(pair(p))+'</span>';
-  const opts=Object.assign({fps:true,haptic:true,dpad:COARSE},def.opts||{},store.get(id+'-opts',{}));
+  const opts=Object.assign({fps:true,haptic:true,dpad:false,padsize:'m'},def.opts||{},store.get(id+'-opts',{}));
   if(def.css)ARC_CSS+=def.css+'\n';
   /* home card */
   const card=document.createElement('a');card.className='gcard';card.href='#'+id;
@@ -3751,6 +3811,20 @@ function arcade(def){
   const ui=(def.ui||[]).map(o=>o.type==='seg'
     ?'<div class="og"><span class="og-l">'+lbl(o.l)+'</span><div class="seg" data-game="'+id+'" data-opt="'+o.k+'">'+o.v.map(v=>'<button data-v="'+v[0]+'">'+lbl(v[1])+'</button>').join('')+'</div></div>'
     :'<div class="trow">'+lbl(o.l)+'<button class="tgl" data-game="'+id+'" data-opt="'+o.k+'" role="switch" aria-checked="true" aria-label="'+esc(pair(o.l))+'"></button></div>').join('');
+  const PADIC={
+    l:'<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',r:'<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
+    u:'<svg viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></svg>',d:'<svg viewBox="0 0 24 24"><path d="M5 9l7 7 7-7"/></svg>',
+    rot:'<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-2.8-6.1"/><path d="M20 4v5h-5"/></svg>',
+    drop:'<svg viewBox="0 0 24 24"><path d="M6 5l6 6 6-6M6 12l6 6 6-6"/></svg>',
+    hold:'<svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="3"/><path d="M9 12h6"/></svg>',
+    go:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg>'};
+  const gpadHtml=()=>{
+    if(!def.pad)return '';
+    const grp=a=>'<div class="gg">'+(a||[]).map((b,i)=>'<button type="button" class="'+(b.w?'wide ':'')+'" data-k="'+b.k+'" data-rep="'+(b.rep||0)+'" aria-label="'+esc(pair(b.t))+'">'+PADIC[b.ic]+'<small>'+lbl(b.t)+'</small></button>').join('')+'</div>';
+    const all=[].concat(def.pad.l||[],def.pad.c||[],def.pad.r||[]);
+    const u=all.reduce((a,b)=>a+(b.w?1.45:1),0);
+    return '<div class="gpad" hidden style="--n:'+all.length+';--u:'+u+'">'+grp(def.pad.l)+grp(def.pad.c)+grp(def.pad.r)+'</div>';
+  };
   const tg=(k,key)=>'<div class="trow"><span data-i18n="'+key+'"></span><button class="tgl" data-game="'+id+'" data-opt="'+k+'" role="switch" aria-checked="true" data-i18n-aria="'+key+'"></button></div>';
   const sec=document.createElement('section');sec.id=id;sec.className='screen arc-scr';sec.hidden=true;
   sec.style.setProperty('--acc','var(--'+def.color+')');
@@ -3760,9 +3834,11 @@ function arcade(def){
     '<div class="ov" id="'+id+'-ov"><div><h2></h2><p></p><div class="big" hidden></div><button class="btn primary"></button></div></div></div></div>'+
     '<div class="row mid"><button class="btn" data-a="pause" data-i18n="pause"></button><button class="btn" data-a="restart" data-i18n="restart"></button>'+
     (def.buttons||[]).map((b,i)=>'<button class="btn" data-a="x'+i+'">'+lbl(b.t)+'</button>').join('')+'</div>'+
-    (def.dpad?'<div class="dpad"><button class="u" data-d="up" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button><button class="l" data-d="left" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button><button class="d" data-d="down" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><button class="r" data-d="right" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button></div>':'')+'</div>'+
+    (def.dpad?'<div class="dpad"><button class="u" data-d="up" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button><button class="l" data-d="left" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button><button class="d" data-d="down" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><button class="r" data-d="right" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button></div>':'')+gpadHtml()+'</div>'+
     '<aside class="drawer"><div class="dh"><h3 data-i18n="options"></h3><button class="icon-btn" data-close data-i18n-aria="close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>'+ui+
-    (def.dpad?tg('dpad','opt_dpad'):'')+tg('haptic','opt_haptic')+tg('fps','opt_fps')+
+    ((def.dpad||def.pad)?tg('dpad','opt_dpad'):'')+
+    (def.pad?'<div class="og"><span class="og-l">'+lbl(['حجم الأزرار','Button size'])+'</span><div class="seg" data-game="'+id+'" data-opt="padsize"><button data-v="s">'+lbl(['صغير','S'])+'</button><button data-v="m">'+lbl(['وسط','M'])+'</button><button data-v="l">'+lbl(['كبير','L'])+'</button></div></div>':'')+
+    tg('haptic','opt_haptic')+tg('fps','opt_fps')+
     (def.note?'<p class="note">'+lbl(def.note)+'</p>':'')+'</aside>';
   $('main').appendChild(sec);
   const wrap=$('#'+id+'-wrap'),cv=def.dom?null:$('#'+id+'-cv'),ctx=cv?cv.getContext('2d'):null,ov=$('#'+id+'-ov'),chipEl=$('#'+id+'-chip');
@@ -3808,7 +3884,7 @@ function arcade(def){
     hudScore();clearTimeout(ovTimer);
     ovTimer=setTimeout(()=>{if(state==='over'){overlay('over');if(newBest||def.winConfetti)confetti()}},def.overDelay||650);
   }
-  function view(){$('.dpad',sec)&&($('.dpad',sec).hidden=!opts.dpad);$('#'+id+'-fps').hidden=!opts.fps}
+  function view(){$('.dpad',sec)&&($('.dpad',sec).hidden=!opts.dpad);const gp=$('.gpad',sec);if(gp){gp.hidden=!opts.dpad;releasePad()}sec.style.setProperty('--pad',({s:62,m:76,l:92})[opts.padsize]+'px');$('#'+id+'-fps').hidden=!opts.fps}
   function frame(ts){
     if(!on){raf=0;return}
     raf=requestAnimationFrame(frame);
@@ -3829,6 +3905,7 @@ function arcade(def){
   window.addEventListener('keyup',e=>{if(on&&state==='running'&&game.key)game.key(e,'up')});
   const ptr=(type,e)=>{
     if(!game.pointer||e.target.closest('.ov'))return;
+    if(def.pad&&opts.dpad){if(type==='down'&&state==='ready')start();return}
     if(type==='down'){if(state==='ready')start();try{wrap.setPointerCapture(e.pointerId)}catch(x){}}
     if(state!=='running')return;
     const r=wrap.getBoundingClientRect();game.pointer(type,e.clientX-r.left,e.clientY-r.top,e);
@@ -3841,6 +3918,22 @@ function arcade(def){
     else if(a==='restart')reset();
     else if(a&&a[0]==='x'){if(state==='ready')start();if(state==='running'){const f=def.buttons[Number(a.slice(1))].fn;game[f]&&game[f]()}}
   }));
+  /* on-screen gamepad: big hold-able buttons that feed the game's own keyboard handler (works for any game with a key() method) */
+  const padOn=new Map();
+  function padFire(k,t){if(state==='ready'&&t==='down')start();if(state==='running'&&game.key)game.key({key:k,repeat:false,ctrlKey:false,preventDefault(){}},t)}
+  function padUp(b){const a=padOn.get(b);if(!a)return;clearTimeout(a.t1);clearInterval(a.t2);padOn.delete(b);b.classList.remove('on');padFire(b.dataset.k,'up')}
+  function releasePad(){[...padOn.keys()].forEach(padUp)}
+  $$('.gpad button',sec).forEach(b=>{
+    b.addEventListener('contextmenu',e=>e.preventDefault());
+    b.addEventListener('pointerdown',e=>{
+      e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(x){}
+      if(padOn.has(b))return;const a={};padOn.set(b,a);b.classList.add('on');
+      padFire(b.dataset.k,'down');opts.haptic&&api.buzz(8);
+      const rep=+b.dataset.rep;if(rep){a.t1=setTimeout(()=>{a.t2=setInterval(()=>padFire(b.dataset.k,'down'),rep)},170)}
+    });
+    ['pointerup','pointercancel','lostpointercapture'].forEach(n=>b.addEventListener(n,()=>padUp(b)));
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)releasePad()});
   const DM={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
   $$('.dpad button',sec).forEach(b=>{
     const go=()=>{if(state==='ready')start();if(state==='running'&&game.dir){const m=DM[b.dataset.d];game.dir(m[0],m[1])}};
@@ -3852,7 +3945,7 @@ function arcade(def){
   window.addEventListener('resize',resize);
   game=def.make(api);
   bindOpts(id,opts,k=>{
-    if(k==='fps'||k==='haptic'||k==='dpad'){view();return}
+    if(k==='fps'||k==='haptic'||k==='dpad'||k==='padsize'){view();return}
     if(game.onOpt&&game.onOpt(k)===true)return;
     reset();
   });
@@ -3879,6 +3972,7 @@ function arcade(def){
 /* ================= 1. Bricks ================= */
 arcade({
   id:'bricks',color:'coral',n:['الطوب','Bricks'],
+  pad:{l:[{k:'ArrowLeft',ic:'l',t:['يسار','Left'],w:1}],c:[{k:' ',ic:'go',t:['إطلاق','Launch']}],r:[{k:'ArrowRight',ic:'r',t:['يمين','Right'],w:1}]},
   d:['اكسر كل الطوب بالكرة والتقط الهدايا المتساقطة.','Smash every brick and catch the falling power-ups.'],
   how:['حرّك المضرب بإصبعك أو الماوس أو الأسهم. اضغط لإطلاق الكرة.','Drag, use the mouse or the arrow keys. Tap to launch the ball.'],
   hud2:['الأرواح','Lives'],opts:{speed:'normal',lives:3,power:true},
@@ -4021,6 +4115,7 @@ arcade({
 /* ================= 2. Dash runner ================= */
 arcade({
   id:'runner',color:'teal',n:['العدّاء','Dash'],
+  pad:{l:[{k:'ArrowDown',ic:'d',t:['انحناء','Duck'],w:1}],r:[{k:' ',ic:'u',t:['قفز','Jump'],w:1}]},
   d:['اركض واقفز فوق البلورات وانحنِ تحت الطائرات.','Run, jump the crystals and duck under the drones.'],
   how:['اضغط للقفز، واسحب للأسفل أو اضغط السهم السفلي للانحناء.','Tap to jump. Swipe down or press the down arrow to duck.'],
   hud2:['الكرات','Orbs'],opts:{speed:'normal',dbl:false},
@@ -4325,7 +4420,8 @@ arcade({
 
 /* ================= 5. Blocks ================= */
 arcade({
-  id:'blocks',color:'lime',dpad:true,n:['المكعبات','Blocks'],
+  id:'blocks',color:'lime',n:['المكعبات','Blocks'],
+  pad:{l:[{k:'ArrowLeft',ic:'l',t:['يسار','Left'],rep:85},{k:'ArrowDown',ic:'d',t:['نزول','Down'],rep:45},{k:'ArrowRight',ic:'r',t:['يمين','Right'],rep:85}],r:[{k:'c',ic:'hold',t:['حفظ','Hold']},{k:' ',ic:'drop',t:['إسقاط','Drop']},{k:'ArrowUp',ic:'rot',t:['تدوير','Rotate']}]},
   d:['رتّب القطع المتساقطة وأكمل الصفوف قبل أن تمتلئ اللوحة.','Stack the falling pieces and clear rows before the board fills.'],
   how:['اسحب لتحريك القطعة، واضغط للتدوير، واسحب سريعاً للأسفل للإسقاط.','Drag to move, tap to rotate, flick down to drop.'],
   hud2:['المستوى','Level'],opts:{speed:'normal',ghost:true},
@@ -4621,7 +4717,7 @@ const GAMES={xo:XO,snake:SN,maze:MZ,orbit:OR};
 Object.keys(EXTRA).forEach(k=>{GAMES[k]=EXTRA[k]});
 const TITLES={xo:'xo_name',snake:'snake_name',maze:'maze_name',orbit:'orbit_name'};
 let curScreen='home';
-function closeDrawers(){$$('.drawer').forEach(d=>d.classList.remove('open'));$('#scrim').classList.remove('on')}
+function closeDrawers(){$$('.drawer').forEach(d=>d.classList.remove('open'));$('#scrim').classList.remove('on');document.documentElement.classList.remove('dr-open')}
 const ESS={xo:['mode','diff','me'],snake:['speed','walls','skin'],maze:['lives','hints','map'],orbit:['speed','aim','mines']};
 const NOT_ESS=['dpad','haptic','fps'];
 function simplifyDrawer(d,g){
@@ -4643,7 +4739,7 @@ function openDrawer(){
   const d=$('.screen:not([hidden]) .drawer');if(!d)return;
   try{simplifyDrawer(d,curScreen)}catch(e){}
   if(GAMES[curScreen])GAMES[curScreen].pause();
-  d.classList.add('open');$('#scrim').classList.add('on');
+  d.classList.add('open');$('#scrim').classList.add('on');document.documentElement.classList.add('dr-open');
 }
 $('#btnOpts').addEventListener('click',()=>{if(document.querySelector('#xo.online-room:not([hidden])'))return;if(drawerOpen())closeDrawers();else openDrawer()});
 $('#scrim').addEventListener('click',closeDrawers);
@@ -4959,6 +5055,20 @@ const sv=(k,v)=>{try{if(v===null)localStorage.removeItem(K+k);else localStorage.
 const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const UOK=/^[a-z0-9_]{3,16}$/,BAD=['__proto__','constructor','prototype','hasownproperty','tostring'];const goodName=u=>typeof u==='string'&&UOK.test(u)&&!BAD.includes(u);
 const EMAILOK=/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
+/* New accounts: only real mailbox providers (Gmail, Yahoo, iCloud, Outlook/Hotmail, Proton, AOL...) with a valid mailbox name */
+const MAIL_DOMAINS=['gmail.com','googlemail.com','yahoo.com','yahoo.co.uk','yahoo.fr','yahoo.de','yahoo.es','yahoo.it','yahoo.in','yahoo.com.br','ymail.com','rocketmail.com','icloud.com','me.com','mac.com','outlook.com','outlook.sa','hotmail.com','hotmail.co.uk','hotmail.fr','live.com','msn.com','protonmail.com','proton.me','pm.me','aol.com','zoho.com','gmx.com','gmx.net','mail.com','yandex.com'];
+const MAIL_TYPOS={'gmial.com':'gmail.com','gmai.com':'gmail.com','gmail.co':'gmail.com','gamil.com':'gmail.com','gnail.com':'gmail.com','gmail.con':'gmail.com','gmail.cm':'gmail.com','gmil.com':'gmail.com','yaho.com':'yahoo.com','yahooo.com':'yahoo.com','yahoo.co':'yahoo.com','yahoo.con':'yahoo.com','hotmial.com':'hotmail.com','hotmail.con':'hotmail.com','outlok.com':'outlook.com','outlook.con':'outlook.com','iclod.com':'icloud.com','icloud.con':'icloud.com','icloud.co':'icloud.com'};
+function emailCheck(e){
+  e=String(e||'').trim().toLowerCase();
+  const m=/^([a-z0-9][a-z0-9._+-]*)@([a-z0-9.-]+\.[a-z]{2,})$/.exec(e);
+  if(!m||e.length>254||/\.\./.test(m[1])||/[._+-]$/.test(m[1]))return{code:'BAD_EMAIL'};
+  const l=m[1],d=m[2];
+  if(MAIL_TYPOS[d])return{code:'EMAIL_TYPO',hint:l+'@'+MAIL_TYPOS[d]};
+  if(MAIL_DOMAINS.indexOf(d)<0)return{code:'EMAIL_PROVIDER'};
+  if(d==='gmail.com'||d==='googlemail.com'){const g=l.split('+')[0];if(g.length<6||g.length>30||!/^[a-z0-9.]+$/.test(g)||g[0]==='.'||/\.$/.test(g))return{code:'BAD_EMAIL'}}
+  if(/^(test|tests|aaa+|abc+|asdf+|qwer+|xxx+|user|email|example|fake|temp|none|no)\d*$/.test(l.replace(/[._]/g,'')))return{code:'BAD_EMAIL'};
+  return null;
+}
 /* ☁ FIREBASE — paste your project's Web API key below (Firebase Console → Project settings → General → Web API Key).
    It is a public identifier, not a secret; your data is protected by the Realtime Database rules. */
 const API_KEY='AIzaSyBH_Olhj3QCK8qgxVtL8dQ1L2XchBId3RI';
@@ -4996,7 +5106,9 @@ const ERR={
  USERNAME_TAKEN:['اسم المستخدم مستخدم، اختر اسماً آخر','Username is taken, pick another'],
  BAD_USERNAME:['اسم المستخدم 3–16 حرفاً: a-z وأرقام و _ فقط','Username: 3–16 chars, a-z, digits and _ only'],
  INVALID_EMAIL:['الإيميل غير صالح','Invalid email address'],
- BAD_EMAIL:['الإيميل غير صالح','Invalid email address'],
+ BAD_EMAIL:['الإيميل غير صالح، اكتب إيميلك الحقيقي','Invalid email address, enter your real email'],
+ EMAIL_PROVIDER:['استخدم إيميلاً رسمياً مثل Gmail أو Yahoo أو iCloud أو Outlook','Use an official email such as Gmail, Yahoo, iCloud or Outlook'],
+ EMAIL_TYPO:['هل كتبت الإيميل بشكل خاطئ؟ ربما تقصد:','Is the email misspelled? Did you mean:'],
  WEAK_PASSWORD:['كلمة المرور 6 أحرف على الأقل','Password must be at least 6 characters'],
  PW_MISMATCH:['كلمتا المرور غير متطابقتين','Passwords do not match'],
  PW_SAME:['كلمة المرور الجديدة يجب أن تختلف عن الحالية','The new password must differ from the current one'],
@@ -5629,7 +5741,22 @@ button,a,.cell{touch-action:manipulation}
 #armnTop .abtn{padding:8px 14px;font-size:14px}
 .hero{padding-block:clamp(10px,3vw,28px) clamp(16px,3vw,30px)}
 
-html.imm .imm-grid>.row,html.imm .imm-grid .dpad{display:none!important}
+html.imm .imm-grid>.row,html.imm .imm-grid .dpad[hidden],html.imm .imm-grid .gpad[hidden]{display:none!important}
+/* big, translucent, thumb-friendly gamepad (corners, away from the board) */
+html.imm .imm-grid>.gpad:not([hidden]){display:flex!important;position:fixed;left:0;right:0;bottom:max(12px,env(safe-area-inset-bottom,0px));width:auto!important;padding:0 12px;justify-content:space-between;align-items:flex-end;gap:8px;z-index:30;pointer-events:none;direction:ltr}
+.gpad .gg{display:flex;gap:8px;align-items:flex-end}
+.gpad button{--bw:min(var(--pad,76px),calc((100vw - 24px - var(--n,4)*8px)/var(--u,4)));pointer-events:auto;width:var(--bw);height:var(--pad,76px);border-radius:calc(var(--pad,76px)*.3);border:1.5px solid rgba(219,163,118,.42);background:rgba(22,19,17,.55);color:var(--fg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;transition:background .08s,transform .08s}
+.gpad button.wide{width:calc(var(--bw)*1.45)}
+.gpad button svg{width:calc(var(--pad,76px)*.36);height:calc(var(--pad,76px)*.36);fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.gpad button small{font:700 10px/1 var(--display,system-ui);opacity:.65;letter-spacing:.2px}
+.gpad button.on,.gpad button:active{background:rgba(219,163,118,.6);color:#1a120b;transform:scale(.95)}
+html.imm .imm-grid:has(>.gpad:not([hidden])){padding-bottom:calc(var(--pad,76px) + 26px)}
+html.imm .imm-grid:has(>.dpad:not([hidden])){padding-bottom:156px}
+@media (orientation:landscape) and (max-height:520px){html.imm .imm-grid:has(>.gpad:not([hidden])),html.imm .imm-grid:has(>.dpad:not([hidden])){padding-bottom:0}.gpad button small{display:none}.gpad button{width:min(var(--pad,76px),58px);height:min(var(--pad,76px),58px)}.gpad button.wide{width:78px}html.imm .imm-grid .dpad:not([hidden]){left:auto!important;right:14px!important;transform:none!important;grid-template-columns:repeat(3,52px)!important;grid-template-rows:repeat(2,52px)!important}}
+/* on-screen buttons (Control method = On-screen): float over the bottom of the screen so the board stays full-size */
+html.imm .imm-grid .dpad:not([hidden]){display:grid!important;position:fixed;z-index:30;bottom:max(14px,env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);margin:0;opacity:.92;touch-action:none;-webkit-user-select:none;user-select:none}
+html.imm .imm-grid .dpad:not([hidden]){grid-template-columns:repeat(3,68px);grid-template-rows:repeat(2,68px);gap:8px}
+html.imm .imm-grid .dpad:not([hidden]) button{background:rgba(24,20,17,.62);border-color:rgba(219,163,118,.45);-webkit-tap-highlight-color:transparent;touch-action:none}
 html.imm .bar-actions{display:none!important}
 html:not(.imm) #armnMenuBtn{display:none}
 #armnMenuBtn{font-size:22px;margin-inline-start:auto}
@@ -5740,7 +5867,7 @@ async function doLogin(idn,pw){
 async function doSignup(u,email,pw,pw2){
   u=String(u||'').trim().toLowerCase();email=String(email||'').trim().toLowerCase();
   if(!goodName(u))throw{code:'BAD_USERNAME'};
-  if(!EMAILOK.test(email))throw{code:'BAD_EMAIL'};
+  {const ec=emailCheck(email);if(ec)throw ec}
   if(pw.length<6)throw{code:'WEAK_PASSWORD'};
   if(pw!==pw2)throw{code:'PW_MISMATCH'};
   let ex;try{ex=await db('GET','usernames/'+u,undefined,{auth:false})}catch(e){throw dbErr(e)}
@@ -5795,7 +5922,7 @@ function auth(m){
   if(m)mode=m;A.hidden=false;
   let body,btn;
   if(mode==='in'){body=inp('aU','text',L('اسم المستخدم أو الإيميل','Username or email'),'username')+inp('aP','password',L('كلمة المرور','Password'),'current-password')+`<button class="lnk" id="aF">${L('نسيت كلمة المرور؟','Forgot password?')}</button>`;btn=L('دخول','Log in')}
-  else if(mode==='up'){body=inp('aU','text',L('اسم المستخدم (a-z و 0-9 و _ ، من 3 إلى 16)','Username (a-z, 0-9, _ ; 3–16 chars)'),'username')+inp('aM','email',L('الإيميل','Email'),'email')+inp('aP','password',L('كلمة المرور (6 أحرف على الأقل)','Password (at least 6 characters)'),'new-password')+inp('aP2','password',L('تأكيد كلمة المرور','Confirm password'),'new-password');btn=L('إنشاء الحساب','Create account')}
+  else if(mode==='up'){body=inp('aU','text',L('اسم المستخدم (a-z و 0-9 و _ ، من 3 إلى 16)','Username (a-z, 0-9, _ ; 3–16 chars)'),'username')+inp('aM','email',L('الإيميل (Gmail / Yahoo / iCloud / Outlook)','Email (Gmail / Yahoo / iCloud / Outlook)'),'email')+inp('aP','password',L('كلمة المرور (6 أحرف على الأقل)','Password (at least 6 characters)'),'new-password')+inp('aP2','password',L('تأكيد كلمة المرور','Confirm password'),'new-password');btn=L('إنشاء الحساب','Create account')}
   else{body=`<p class="hint">${L('أدخل إيميلك أو اسم المستخدم وسنرسل لك رابطاً لتعيين كلمة مرور جديدة.','Enter your email or username and we will send you a link to set a new password.')}</p>`+inp('aU','text',L('الإيميل أو اسم المستخدم','Email or username'),'username')+`<button class="lnk" id="aB">${L('← العودة لتسجيل الدخول','← Back to log in')}</button>`;btn=L('إرسال رابط الاستعادة','Send reset link')}
   A.innerHTML=`<div class="bx"><button class="abtn g" id="aX" style="float:inline-end;padding:4px 12px" aria-label="close">✕</button><h2>GAME ARMN</h2>${mode==='forgot'?'':`<div class="tabs"><button class="abtn ${mode==='in'?'':'g'}" data-m="in">${L('دخول','Log in')}</button><button class="abtn ${mode==='up'?'':'g'}" data-m="up">${L('حساب جديد','Sign up')}</button></div>`}${body}<div class="err" id="aE"></div><div class="ok" id="aOk"></div><button class="abtn" style="width:100%" id="aGo">${btn}</button></div>`;
   A.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>auth(b.dataset.m));
@@ -5813,7 +5940,7 @@ function auth(m){
       else{await doForgot(val('aU'));er.textContent='';ok.textContent=L('إذا كان الحساب موجوداً فقد أُرسل رابط استعادة كلمة المرور إلى إيميله. تحقق أيضاً من البريد المزعج.','If the account exists, a reset link was sent to its email. Check your spam folder too.');go.disabled=false;return}
       A.hidden=true;say(L('أهلاً '+cur,'Welcome '+cur)+' 👋');
     }catch(x){
-      const c=(x&&x.code)||'ERROR';er.textContent=emsg(c);
+      const c=(x&&x.code)||'ERROR';er.textContent=emsg(c)+((x&&x.hint)?' '+x.hint:'');
       if(mode==='in'&&/CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND/.test(c)){const n=lk.n+1;sv('lock',{n,until:n>=5?Date.now()+30000*(n-4):0})}
     }
     go.disabled=false;
@@ -5946,7 +6073,7 @@ tools.push(['📖','كيف ألعب','How to play',()=>help(g)],['🌍','الت�
 if(g!=='xo'&&g!=='memory')tools.push(['📸','لقطة شاشة','Snapshot',()=>{const c=document.querySelector('#'+g+' canvas:not(.minimap)');if(!c)return;try{const a=document.createElement('a');a.download='armn-'+g+'.png';a.href=c.toDataURL('image/png');a.click();say('📸 '+L('تم حفظ اللقطة','Snapshot saved'))}catch(x){}}]);
 tools.push(['📤','مشاركة','Share',share]);
 if(document.querySelector('.screen:not([hidden]) .drawer')&&!document.querySelector('#xo.online-room:not([hidden])'))act.push(['⚙️','خيارات اللعبة','Game options',()=>clk('#btnOpts')]);
-act.push(['🔊','الصوت','Sound',()=>clk('#btnSound')]);
+{const so=!document.querySelector('#btnSound').classList.contains('off');act.push([so?'🔊':'🔇',so?'الصوت: يعمل':'الصوت: صامت',so?'Sound: On':'Sound: Muted',()=>clk('#btnSound')])}
 set.push(['⛶','ملء الشاشة','Fullscreen',()=>clk('#btnFull')],['🌐','English / عربي','Language',()=>clk('#btnLang')],['🏠','الرئيسية','Home',()=>clk('#btnBack')]);
 const onl=g==='xo'&&!!document.querySelector('#xo.online-room:not([hidden])');if(onl){act.length=0;tools.length=0;set.length=0;act.push(['🔊','الصوت','Sound',()=>clk('#btnSound')])}
 const fns=[];const grid=(arr)=>`<div class="mg">${arr.map(x=>{fns.push(x[3]);return`<button class="mt" data-k="${fns.length-1}"><b>${x[0]}</b>${esc(L(x[1],x[2]))}</button>`}).join('')}</div>`;
@@ -6767,10 +6894,25 @@ function settingsSheet() {
       '<button type="button" class="st" data-s="lang">' + ic('lang') + '<span>' + T('اللغة', 'Language') + '</span><em>' + T('English', 'العربية') + '</em></button>' +
       '<button type="button" class="st" data-s="full">' + ic('expand') + '<span>' + T('ملء الشاشة', 'Fullscreen') + '</span></button>' +
       '<button type="button" class="st" data-s="account">' + ic('user') + '<span>' + T('حسابي', 'My account') + '</span></button>' +
-      '<button type="button" class="st" data-s="help">' + ic('help') + '<span>' + T('الاختصارات والمساعدة', 'Shortcuts & help') + '</span></button></div>';
+      '<button type="button" class="st" data-s="help">' + ic('help') + '<span>' + T('الاختصارات والمساعدة', 'Shortcuts & help') + '</span></button></div>' + perfBlock();
+  };
+  const perfBlock = () => {
+    const P = window.ARMN_PERF ? ARMN_PERF.get() : { fps: 60, mode: 'normal' };
+    const fp = n => '<button type="button" data-fps="' + n + '" aria-pressed="' + (P.fps === n) + '">' + n + '</button>';
+    return '<h4 class="hp-h" style="margin:14px 0 8px">' + T('الأداء', 'Performance') + '</h4><div class="pfb-bar pfb-in">' +
+      '<div class="pfb-g"><span class="pfb-l">' + T('الفريمات', 'FPS') + '</span><div class="pfb-seg">' + fp(30) + fp(60) + fp(90) + '</div></div>' +
+      '<div class="pfb-g"><button type="button" class="pfb-m" data-m="lite" aria-pressed="' + (P.mode === 'lite') + '" title="' + T('تبسيط الموقع للهواتف الضعيفة', 'Simplify the site for weak phones') + '">' + T('🪶 تبسيط', '🪶 Lite') + '</button>' +
+      '<button type="button" class="pfb-m u" data-m="ultra" aria-pressed="' + (P.mode === 'ultra') + '" title="' + T('كل المؤثرات بأعلى فريمات', 'All effects at the highest frame rate') + '">' + T('⚡ فائق', '⚡ Ultra') + '</button></div></div>';
   };
   draw();
   h.addEventListener('click', e => {
+    const pb = e.target.closest('.pfb-in [data-fps], .pfb-in [data-m]');
+    if (pb && window.ARMN_PERF) {
+      const P = ARMN_PERF.get();
+      if (pb.dataset.fps) ARMN_PERF.set({ fps: +pb.dataset.fps });
+      else ARMN_PERF.set({ mode: P.mode === pb.dataset.m ? 'normal' : pb.dataset.m });
+      draw(); return;
+    }
     const b = e.target.closest('[data-s]'); if (!b) return;
     const s = b.dataset.s;
     if (s === 'sound') { $('#btnSound').click(); draw(); }
@@ -7698,11 +7840,7 @@ html,body{overflow-x:clip}
 body::after{content:none!important}
 #armnStars{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
 html.imm #armnStars{opacity:.55}
-#armnStars i{position:absolute;display:block;border-radius:50%;background:var(--c,#fff);box-shadow:0 0 var(--g,6px) var(--gs,1px) var(--c,#fff);opacity:.2;animation:stTw var(--d,4s) ease-in-out var(--dl,0s) infinite}
-#armnStars b{position:absolute;display:block;font-weight:400;line-height:1;color:var(--c,#fff);text-shadow:0 0 6px var(--c,#fff),0 0 16px var(--c,#fff);opacity:.25;animation:stSp var(--d,5s) ease-in-out var(--dl,0s) infinite}
-@keyframes stTw{0%,100%{opacity:.15;transform:scale(.7)}50%{opacity:1;transform:scale(1.3)}}
-@keyframes stSp{0%,100%{opacity:.2;transform:scale(.6) rotate(0)}50%{opacity:1;transform:scale(1.15) rotate(20deg)}}
-@media (prefers-reduced-motion:reduce){#armnStars i,#armnStars b{animation:none;opacity:.7}}
+
 /* frame auras */
 html .ring[class*="fr-"]:not(.fr-off){filter:drop-shadow(0 0 4px var(--aura,#7cc6ff)) drop-shadow(0 0 11px var(--aura,#7cc6ff))}
 html .ring.fr-fire,html .ring.fr-ice,html .ring.fr-thunder,html .ring.fr-neon,html .ring.fr-toxic,html .ring.fr-rainbow,html .ring.fr-galaxy,html .ring.fr-royal,html .ring.fr-ruby{--aura-on:1}
@@ -7772,24 +7910,53 @@ html .xo-fr.ring{overflow:visible!important}
 html .rk-row:has(.rk-avr.ring[class*="fr-"]){overflow:visible}
 html .xo-player.talking .xo-fr.ring[class*="fr-"]:not(.fr-off){filter:drop-shadow(0 0 8px #6fe3b0) drop-shadow(0 0 16px #6fe3b0)}
 </style>
-<script>
-/* starfield: fixed to the screen, twinkles in place only (never drifts or follows scroll) */
+<script id="armn-stars-js">
+/* starfield on ONE canvas (was 124 separately animated glowing elements, the main cause of home-screen lag).
+   Twinkles in place, throttled to ~24 fps, frozen in lite mode and when the tab is hidden. */
 (function(){
   if(document.getElementById('armnStars'))return;
-  var box=document.createElement('div');box.id='armnStars';box.setAttribute('aria-hidden','true');
-  var C=['#ffffff','#ece7e2','#e6dfd8','#f4f1ee','#ffe9a8','#eae3dd'];
-  var h='';
+  var cv=document.createElement('canvas');cv.id='armnStars';cv.setAttribute('aria-hidden','true');
+  (document.body||document.documentElement).appendChild(cv);
+  var ctx=cv.getContext('2d'),W=0,H=0,dpr=1,stars=[],sprites={},raf=0,lastDraw=0,t0=performance.now();
+  var C=['#ffffff','#ece7e2','#e6dfd8','#f4f1ee','#ffe9a8','#eae3dd'],BLUE='#d6e6ff';
   function r(a,b){return a+Math.random()*(b-a)}
-  for(var i=0;i<110;i++){
-    var sz=r(1.2,3.1).toFixed(1),c=C[Math.floor(Math.random()*C.length)];
-    h+='<i style="left:'+r(0,100).toFixed(1)+'%;top:'+r(0,100).toFixed(1)+'%;width:'+sz+'px;height:'+sz+'px;--c:'+c+';--g:'+(sz*3).toFixed(0)+'px;--gs:'+(sz>2.4?1.5:.5)+'px;--d:'+r(2.6,6.5).toFixed(1)+'s;--dl:-'+r(0,6).toFixed(1)+'s"></i>';
+  function sprite(col,kind){
+    var k=col+kind;if(sprites[k])return sprites[k];
+    var n=64,c=document.createElement('canvas');c.width=c.height=n;var x=c.getContext('2d');
+    if(kind==='d'){var g=x.createRadialGradient(n/2,n/2,0,n/2,n/2,n/2);g.addColorStop(0,col);g.addColorStop(.18,col);g.addColorStop(.32,col+'99');g.addColorStop(1,col+'00');x.fillStyle=g;x.fillRect(0,0,n,n)}
+    else{x.fillStyle=col;x.shadowColor=col;x.shadowBlur=10;x.font='34px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('\u2726',n/2,n/2+1)}
+    return sprites[k]=c;
   }
-  for(var k=0;k<14;k++){
-    var c2=C[Math.floor(Math.random()*C.length)];
-    h+='<b style="left:'+r(2,96).toFixed(1)+'%;top:'+r(2,96).toFixed(1)+'%;font-size:'+r(9,17).toFixed(0)+'px;--c:'+c2+';--d:'+r(4,8).toFixed(1)+'s;--dl:-'+r(0,8).toFixed(1)+'s">✦</b>';
+  function gen(){
+    stars=[];for(var i=0;i<110;i++)stars.push({x:r(0,1),y:r(0,1),s:r(1.2,3.1),c:C[Math.floor(Math.random()*C.length)],d:r(2.6,6.5),p:Math.random(),k:'d'});
+    for(var k=0;k<14;k++)stars.push({x:r(.02,.96),y:r(.02,.96),s:r(9,17),c:C[Math.floor(Math.random()*C.length)],d:r(4,8),p:Math.random(),k:'s'});
   }
-  box.innerHTML=h;
-  (document.body||document.documentElement).appendChild(box);
+  function size(){
+    dpr=Math.min(window.devicePixelRatio||1,1.5);W=Math.max(1,Math.round(innerWidth*dpr));H=Math.max(1,Math.round(innerHeight*dpr));
+    cv.width=W;cv.height=H;cv.style.width='100%';cv.style.height='100%';draw(performance.now(),true);
+  }
+  function isBlue(){return location.hash==='#xo'}
+  function draw(now,still){
+    ctx.clearRect(0,0,W,H);var t=(now-t0)/1000,blue=isBlue();
+    for(var i=0;i<stars.length;i++){
+      var o=stars[i],ph=still?.5:(.5-.5*Math.cos(6.2832*(t/o.d+o.p)));
+      var a=still?.7:(o.k==='d'?.15+.85*ph:.2+.8*ph),sc=o.k==='d'?(.7+.6*ph):(.6+.55*ph);
+      var px=o.s*dpr*(o.k==='d'?6:2.2)*sc;if(still)px=o.s*dpr*(o.k==='d'?6:2.2);
+      ctx.globalAlpha=a;ctx.drawImage(sprite(blue?BLUE:o.c,o.k),o.x*W-px/2,o.y*H-px/2,px,px);
+    }
+    ctx.globalAlpha=1;
+  }
+  function loop(ts){
+    raf=0;var P=window.ARMN_PERF&&ARMN_PERF.get();
+    if(document.hidden||(P&&P.mode==='lite'))return;
+    var gap=document.documentElement.classList.contains('imm')?60:42;
+    if(ts-lastDraw>=gap){lastDraw=ts;draw(ts)}
+    raf=requestAnimationFrame(loop);
+  }
+  function kick(){if(!raf){var P=window.ARMN_PERF&&ARMN_PERF.get();if(P&&P.mode==='lite'){draw(performance.now(),true);return}raf=requestAnimationFrame(loop)}}
+  gen();size();kick();
+  addEventListener('resize',size);document.addEventListener('visibilitychange',kick);document.addEventListener('armnperf',function(){draw(performance.now(),true);kick()});
+  addEventListener('hashchange',function(){draw(performance.now(),true)});
 })();
 </script>
 <script id="armn-premium-js">
@@ -8034,7 +8201,83 @@ html:has(#xo:not([hidden])) #armnStars i,html:has(#xo:not([hidden])) #armnStars 
 #xo .board .cell.win.fX{background:#1d3f9c!important;border-color:#3b82f6!important}
 #xo .board .cell.win.fO{background:#5a1a2e!important;border-color:#ef4444!important}
 #xo .board .cell.tapglow{box-shadow:0 0 14px 1px rgba(110,170,255,.5)!important;border-color:#7fb4ff!important}
+#xo .board .cell.hint{border-color:#ffd36b!important;background:rgba(255,211,107,.18)!important;box-shadow:0 0 0 3px rgba(255,211,107,.55),0 0 24px rgba(255,211,107,.7),inset 0 0 20px rgba(255,211,107,.4)!important;animation:armnHintPulse .75s ease-in-out 3;position:relative;z-index:2}
+@keyframes armnHintPulse{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.07);filter:brightness(1.45)}}
 </style>
 <script id="armn-xo-final-js">(function(){try{var b=document.getElementById('board');if(!b)return;var t;b.addEventListener('pointerdown',function(e){var c=e.target.closest&&e.target.closest('.cell');if(!c)return;c.classList.add('tapglow');clearTimeout(c._t);c._t=setTimeout(function(){c.classList.remove('tapglow')},260)},true);}catch(e){}})();</script>
+
+<style id="armn-perf-css">
+/* ===== performance bar (top of home) ===== */
+.hub>.pfb-bar{display:none!important}
+.pfb-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 10px;margin:6px 0 8px;padding:8px 10px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09)}
+.pfb-g{display:inline-flex;align-items:center;gap:6px}
+.pfb-l{font:700 12px/1 var(--display,system-ui);opacity:.7;white-space:nowrap}
+.pfb-seg{display:inline-flex;border-radius:12px;overflow:hidden;border:1px solid rgba(219,163,118,.35);direction:ltr}
+.pfb-seg button,.pfb-m{appearance:none;border:0;background:transparent;color:inherit;font:800 13px/1 var(--display,system-ui);padding:8px 13px;cursor:pointer;min-height:34px;touch-action:manipulation}
+.pfb-seg button+button{border-inline-start:1px solid rgba(219,163,118,.25)}
+.pfb-seg button[aria-pressed=true]{background:linear-gradient(180deg,#dba376,#c9854f);color:#1a1512}
+.pfb-m{border:1px solid rgba(219,163,118,.35);border-radius:12px;white-space:nowrap}
+.pfb-m[aria-pressed=true]{background:linear-gradient(180deg,#dba376,#c9854f);color:#1a1512}
+.pfb-m.u[aria-pressed=true]{background:linear-gradient(180deg,#8fd0ff,#5aa5ee);color:#08121c}
+/* ===== normal mode: cheaper blur (blur on sticky bars is re-rendered on every scroll frame) ===== */
+html:not(.perf-ultra) .hb-top,html:not(.perf-ultra) .bar{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:rgba(14,12,11,.94)!important}
+/* ===== normal mode: keep the look, drop animations that force a repaint every frame (text-shadow / filter) ===== */
+html:not(.perf-ultra) .hl-a span{animation:hlDrop .9s cubic-bezier(.2,1.5,.4,1) both!important;animation-delay:calc(.45s + var(--i)*.11s)!important;text-shadow:0 0 12px rgba(var(--gl),.8),0 0 28px rgba(var(--gl),.4)}
+html:not(.perf-ultra) .hl-g span{animation:lgShift 6s linear infinite!important;animation-delay:calc(var(--i)*-.4s)!important;filter:drop-shadow(0 0 10px rgba(255,210,74,.7))}
+html:not(.perf-ultra) .hl-crown .ic,html:not(.perf-ultra) .bn-daily.ready .ic{animation:none!important;filter:drop-shadow(0 0 12px rgba(255,205,70,.85))}
+html:not(.perf-ultra) .bn-daily.ready .ic{animation:lgHop 1.8s ease-in-out infinite!important}
+html:not(.perf-ultra) svg.ic,html:not(.perf-ultra) span.ic{filter:none!important}
+html:not(.perf-ultra) .hl-crown .ic{filter:drop-shadow(0 0 10px rgba(255,205,70,.85))!important}
+/* ===== lite mode: simplify everything for weak phones ===== */
+html.perf-lite *,html.perf-lite *::before,html.perf-lite *::after{animation-duration:.001s!important;animation-delay:0s!important;animation-iteration-count:1!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;scroll-behavior:auto!important}
+/* X-O marks must always be visible, whatever the mode */
+html.perf-lite .mk .x,html.perf-lite .mk .o,html.perf-lite #xo .mk path,html.perf-lite #xo .mk circle{stroke-dashoffset:0!important;opacity:1!important}
+html.perf-lite .cell.old .mk,html.perf-lite #xo .board .cell.old .mk{opacity:.45!important}
+html.perf-lite .ring[class*="fr-"],html.perf-lite .ring[class*="fr-"] *{filter:none!important}
+html.perf-lite *{text-shadow:none!important;box-shadow:none!important}
+html.perf-lite *{filter:none!important}
+html.perf-lite .gc,html.perf-lite .tile,html.perf-lite .sit,html.perf-lite .pc{transform:none!important;will-change:auto!important}
+html.perf-lite .hb-top,html.perf-lite .bar{background:#14110f!important}
+html.perf-lite #xo .board .cell.hint{animation:armnHintPulse .75s ease-in-out 3!important}
+html.perf-lite .pfb-bar,html.perf-lite .pfb-bar *{transition:none!important}
+</style>
+<script id="armn-perf-ui">
+(function(){
+  var D=document;
+  function ar(){return D.documentElement.lang!=='en'}
+  function L(a,e){return ar()?a:e}
+  var bar=null;
+  function paint(){
+    if(!bar||!window.ARMN_PERF)return;var P=ARMN_PERF.get();
+    bar.querySelectorAll('[data-fps]').forEach(function(b){b.setAttribute('aria-pressed',String(P.mode!=='ultra'&&+b.dataset.fps===P.fps))});
+    bar.querySelector('[data-m=lite]').setAttribute('aria-pressed',String(P.mode==='lite'));
+    bar.querySelector('[data-m=ultra]').setAttribute('aria-pressed',String(P.mode==='ultra'));
+    bar.querySelector('.pfb-lf').textContent=L('الفريمات','FPS');
+    bar.querySelector('[data-m=lite]').textContent=L('🪶 تبسيط','🪶 Lite');
+    bar.querySelector('[data-m=ultra]').textContent=L('⚡ فائق','⚡ Ultra');
+    bar.querySelector('[data-m=lite]').title=L('تبسيط الموقع للهواتف الضعيفة (سلاسة فائقة)','Simplify the site for weak phones (ultra smooth)');
+    bar.querySelector('[data-m=ultra]').title=L('كل المؤثرات كما هي بأعلى فريمات','All effects as they are, at the highest frame rate');
+  }
+  function build(){
+    return;var hub=D.getElementById('hub');if(!hub||hub.querySelector('.pfb-bar'))return;
+    bar=D.createElement('div');bar.className='pfb-bar';bar.setAttribute('role','group');
+    bar.innerHTML='<div class="pfb-g"><span class="pfb-l pfb-lf"></span><div class="pfb-seg"><button type="button" data-fps="30" aria-pressed="false">30</button><button type="button" data-fps="60" aria-pressed="false">60</button><button type="button" data-fps="90" aria-pressed="false">90</button></div></div><div class="pfb-g"><button type="button" class="pfb-m" data-m="lite" aria-pressed="false"></button><button type="button" class="pfb-m u" data-m="ultra" aria-pressed="false"></button></div>';
+    hub.insertBefore(bar,hub.firstChild);
+    bar.addEventListener('click',function(e){
+      var b=e.target.closest('button');if(!b)return;var P=ARMN_PERF.get();
+      if(b.dataset.fps){ARMN_PERF.set({fps:+b.dataset.fps,mode:P.mode==='ultra'?'normal':P.mode})}
+      else if(b.dataset.m){ARMN_PERF.set({mode:P.mode===b.dataset.m?'normal':b.dataset.m})}
+      paint();
+    });
+    paint();
+  }
+  D.addEventListener('armnperf',paint);D.addEventListener('langchange',paint);
+  var tries=0,iv=setInterval(function(){build();if((bar&&bar.isConnected)||++tries>80)clearInterval(iv)},150);
+  var obs=new MutationObserver(function(){var h=D.getElementById('hub');if(h&&!h.__pfo){h.__pfo=1;obs.observe(h,{childList:true})}if(!bar||!bar.isConnected){bar=null;build()}});
+  obs.observe(D.body,{childList:true});
+  var hm=D.getElementById('home');if(hm)obs.observe(hm,{childList:true});
+  D.addEventListener('langchange',function(){setTimeout(function(){if(!bar||!bar.isConnected){bar=null;build()}paint()},60)});
+})();
+</script>
 </body>
 </html>
