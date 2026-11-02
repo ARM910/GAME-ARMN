@@ -4423,20 +4423,22 @@ arcade({
   id:'blocks',color:'lime',n:['المكعبات','Blocks'],
   pad:{l:[{k:'ArrowLeft',ic:'l',t:['يسار','Left'],rep:85},{k:'ArrowDown',ic:'d',t:['نزول','Down'],rep:45},{k:'ArrowRight',ic:'r',t:['يمين','Right'],rep:85}],r:[{k:'c',ic:'hold',t:['حفظ','Hold']},{k:' ',ic:'drop',t:['إسقاط','Drop']},{k:'ArrowUp',ic:'rot',t:['تدوير','Rotate']}]},
   d:['رتّب القطع المتساقطة وأكمل الصفوف قبل أن تمتلئ اللوحة.','Stack the falling pieces and clear rows before the board fills.'],
-  how:['اسحب لتحريك القطعة، واضغط للتدوير، واسحب سريعاً للأسفل للإسقاط.','Drag to move, tap to rotate, flick down to drop.'],
+  how:['اسحب لتحريك القطعة، واضغط للتدوير، واسحب سريعاً للأسفل للإسقاط. القطعة تبقى مكانها عند الهبوط. عند انفجار صف تنزل المربعات التي فوقه لتسد الفراغ إذا كان الفراغ تحتها مربعاً أو مربعين فقط.','Drag to move, tap to rotate, flick down to drop. Pieces stay where they land. When a row explodes, blocks above it drop only if the gap below is 1 or 2 cells.'],
   hud2:['المستوى','Level'],opts:{speed:'normal',ghost:true},
   buttons:[{t:['تدوير','Rotate'],fn:'rotate'},{t:['حفظ','Hold'],fn:'hold'},{t:['إسقاط','Drop'],fn:'hardDrop'}],
   ui:[
     {type:'seg',k:'speed',l:['مستوى البداية','Start level'],v:[['slow',['1','1']],['normal',['4','4']],['fast',['8','8']]]},
     {type:'tgl',k:'ghost',l:['ظل القطعة','Ghost piece']}],
-  note:['لوحة الكيبورد: الأسهم للحركة والتدوير، المسافة للإسقاط، C للحفظ.','Keyboard: arrows move and rotate, Space drops, C holds.'],
+  note:['لا تنزل المربعات عند الهبوط العادي، بل فقط عند انفجار صف: فراغ مربع أو مربعين تحت المربع ينزل، وفراغ 3 مربعات أو أكثر لا ينزل. لوحة الكيبورد: الأسهم للحركة والتدوير، المسافة للإسقاط، C للحفظ.','Blocks do not drop on a normal landing, only when a row explodes: a gap of 1–2 cells under a block drops, a gap of 3 or more stays. Keyboard: arrows move and rotate, Space drops, C holds.'],
   preview:'<g><rect x="72" y="20" width="116" height="112" rx="8" fill="#10191f" stroke="#273b48"/><g fill="#86c3e6"><rect x="80" y="112" width="18" height="16" rx="3"/><rect x="100" y="112" width="18" height="16" rx="3" fill="#f0cb7a"/><rect x="120" y="112" width="18" height="16" rx="3" fill="#7fd6a8"/><rect x="140" y="112" width="18" height="16" rx="3" fill="#f09a8a"/><rect x="160" y="112" width="18" height="16" rx="3" fill="#b9a8ec"/><rect x="100" y="94" width="18" height="16" rx="3" fill="#f0cb7a"/></g><g fill="#b7d77a"><rect x="120" y="24" width="18" height="16" rx="3"><animate attributeName="y" values="24;74;24" dur="2.6s" repeatCount="indefinite"/></rect><rect x="138" y="24" width="18" height="16" rx="3"><animate attributeName="y" values="24;74;24" dur="2.6s" repeatCount="indefinite"/></rect><rect x="120" y="42" width="18" height="16" rx="3"><animate attributeName="y" values="42;92;42" dur="2.6s" repeatCount="indefinite"/></rect></g></g>',
   make(api){
     const o=api.opts,tr=(a,b)=>lang==='ar'?a:b,COLS=10,ROWS=20;
     const SH={I:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],O:[[1,1],[1,1]],T:[[0,1,0],[1,1,1],[0,0,0]],S:[[0,1,1],[1,1,0],[0,0,0]],Z:[[1,1,0],[0,1,1],[0,0,0]],J:[[1,0,0],[1,1,1],[0,0,0]],L:[[0,0,1],[1,1,1],[0,0,0]]};
     const CL={I:'#86c3e6',O:'#f0cb7a',T:'#b9a8ec',S:'#7fd6a8',Z:'#f09a8a',J:'#6f9ae6',L:'#e3b98a'};
     const START={slow:1,normal:4,fast:8},PTS=[0,100,300,500,800];
-    let board,cur,queue,bag,hold,canHold,fall,lockT,lockResets,lines,level,clearing,clearT,parts,p0,chipT;
+    let board,cur,queue,bag,hold,canHold,fall,lockT,lockResets,lines,level,clearing,clearT,parts,p0,chipT,settleT=null,fellCells=0,gravOn=false;
+    /* full column gravity: every block falls until it rests on the floor or another block, so the board never holds an empty cell under a block */
+    function grav(){let n=0;for(let y=ROWS-2;y>=0;y--)for(let x=0;x<COLS;x++){if(!board[y][x])continue;let k=0;while(y+1+k<ROWS&&!board[y+1+k][x])k++;if(k>=1&&k<=2){board[y+1][x]=board[y][x];board[y][x]=null;n++}}return n}
     const rot=m=>m[0].map((_,i)=>m.map(r=>r[i]).reverse());
     function refill(){const b=Object.keys(SH);for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}bag.push(...b)}
     function take(){if(bag.length<7)refill();return bag.shift()}
@@ -4476,19 +4478,23 @@ arcade({
       for(let r=0;r<cur.m.length;r++)for(let c=0;c<cur.m[r].length;c++){
         if(cur.m[r][c]){const y=cur.y+r;if(y>=0)board[y][cur.x+c]=CL[cur.t]}
       }
+      cur=null;settleT=.05;fellCells=0;gravOn=false;
+    }
+    function checkRows(){
       const full=[];for(let y=0;y<ROWS;y++)if(board[y].every(Boolean))full.push(y);
-      cur=null;
+      settleT=null;
       if(full.length){
         clearing=full;clearT=.26;api.tone(600+full.length*100,.12,'triangle',.06);if(full.length===4){api.tone(1047,.2,'triangle',.06,.1);api.buzz(40)}else api.buzz(15);
-      }else spawn();
+        if(fellCells>=3){const bonus=fellCells*level;api.addScore(bonus);api.chip(tr('💥 انهيار +','💥 Collapse +')+bonus);chipT=1.4}
+      }else{fellCells=0;spawn()}
     }
     function finishClear(){
       const n=clearing.length;
       for(const y of clearing){for(let x=0;x<COLS;x++)for(let k=0;k<3;k++)parts.push({x:x+.5,y:y+.5,vx:(Math.random()-.5)*10,vy:-Math.random()*8,life:.6,max:.6,c:rnd(Object.values(CL))})}
-      board=board.filter((_,y)=>!clearing.includes(y));while(board.length<ROWS)board.unshift(Array(COLS).fill(null));
+      for(const y of clearing)board[y]=Array(COLS).fill(null);
       lines+=n;level=START[o.speed]+Math.floor(lines/10);api.addScore(PTS[n]*level);api.hud2(level);
       if(n===4){api.chip(tr('رباعي!','Quad!'));chipT=1.3}
-      clearing=null;spawn();
+      clearing=null;settleT=.05;fellCells=0;gravOn=true;
     }
     function layout(){const W=api.W,ts=W/20,x0=W*.05;return{W,ts,x0,px:x0+10*ts+ts*.9}}
     function drawCell(c,x,y,ts,col,a=1){
@@ -4505,11 +4511,12 @@ arcade({
     return{
       reset(){
         board=Array.from({length:ROWS},()=>Array(COLS).fill(null));bag=[];queue=[];while(queue.length<5)queue.push(take());
-        hold=null;lines=0;level=START[o.speed];clearing=null;parts=[];chipT=0;cur=null;api.hud2(level);spawn();
+        hold=null;lines=0;level=START[o.speed];clearing=null;settleT=null;fellCells=0;gravOn=false;parts=[];chipT=0;cur=null;api.hud2(level);spawn();
       },
       update(s){
         if(chipT>0){chipT-=s;if(chipT<=0)api.chip(null)}
         if(clearing){clearT-=s;if(clearT<=0)finishClear();this.fx(s);return}
+        if(settleT!==null){settleT-=s;if(settleT<=0){settleT=.055;const n=gravOn?grav():0;if(n){fellCells+=n;api.tone(240+Math.min(fellCells,14)*12,.025,'square',.015)}else{gravOn=false;checkRows()}}this.fx(s);return}
         if(!cur)return;
         fall+=s;const iv=Math.max(.05,.8*Math.pow(.82,level-1));
         if(fall>=iv){fall=0;if(!hit(cur.m,cur.x,cur.y+1))cur.y++}
@@ -6009,7 +6016,7 @@ S.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;u.
 if(!u.own[sg].includes(i)){if((u.pts||0)<P[i]){say(L('نقاطك لا تكفي','Not enough points'));return}u.pts-=P[i];u.own[sg].push(i)}
 u.eq[sg]=i;saveNow();applyThemes();paint();shop(sg)})}
 /* back / menu buttons inside every game + confirm on exit */
-const HELP={xo:['كل لاعب يملك 3 قطع فقط؛ القطعة الرابعة تمحو الأقدم. صُفّ 3 قطع في خط واحد لتفوز.','Each player has 3 pieces; the 4th erases your oldest. Line up 3 to win.'],snake:['اسحب أو استخدم الأسهم، كل موزة تطوّلك. لا تصطدم بنفسك.','Swipe or use arrows; bananas make you longer. Do not hit yourself.'],maze:['اجمع المفاتيح والجواهر ثم اعبر البوابة وتجنب الأعداء. تقدمك محفوظ لكل مرحلة.','Collect keys and gems, take the gate and dodge enemies. Progress is saved per level.'],orbit:['دُر حول الكوكب ثم اضغط في اللحظة المناسبة لتنطلق نحو التالي.','Circle a planet, tap at the right moment to launch to the next.'],bricks:['حرّك المضرب بإصبعك أو الماوس وحطّم كل الطوب.','Move the paddle with your finger or mouse and clear all bricks.'],runner:['اضغط أو مسطرة المسافة للقفز فوق العوائق.','Tap or press Space to jump over obstacles.'],t2048:['اضغط أي مربع ليذهب إلى مثيله ويتضاعف، أو اسحب. هدفك 2048.','Tap any tile to send it to its twin and double it, or swipe. Reach 2048.'],memory:['اقلب بطاقتين وطابق الأزواج بأقل عدد من الحركات.','Flip two cards and match all pairs in as few moves as possible.'],blocks:['حرّك وأدِر المكعبات لتكمل صفوفاً كاملة فتختفي.','Move and rotate blocks to complete rows and clear them.'],flip:['اضغط في أي مكان لقلب الجاذبية بين الأرض والسقف، تفادَ الأشواك والتقط النجوم.','Tap anywhere to flip gravity between floor and ceiling, dodge spikes and grab stars.']};
+const HELP={xo:['كل لاعب يملك 3 قطع فقط؛ القطعة الرابعة تمحو الأقدم. صُفّ 3 قطع في خط واحد لتفوز.','Each player has 3 pieces; the 4th erases your oldest. Line up 3 to win.'],snake:['اسحب أو استخدم الأسهم، كل موزة تطوّلك. لا تصطدم بنفسك.','Swipe or use arrows; bananas make you longer. Do not hit yourself.'],maze:['اجمع المفاتيح والجواهر ثم اعبر البوابة وتجنب الأعداء. تقدمك محفوظ لكل مرحلة.','Collect keys and gems, take the gate and dodge enemies. Progress is saved per level.'],orbit:['دُر حول الكوكب ثم اضغط في اللحظة المناسبة لتنطلق نحو التالي.','Circle a planet, tap at the right moment to launch to the next.'],bricks:['حرّك المضرب بإصبعك أو الماوس وحطّم كل الطوب.','Move the paddle with your finger or mouse and clear all bricks.'],runner:['اضغط أو مسطرة المسافة للقفز فوق العوائق.','Tap or press Space to jump over obstacles.'],t2048:['اضغط أي مربع ليذهب إلى مثيله ويتضاعف، أو اسحب. هدفك 2048.','Tap any tile to send it to its twin and double it, or swipe. Reach 2048.'],memory:['اقلب بطاقتين وطابق الأزواج بأقل عدد من الحركات.','Flip two cards and match all pairs in as few moves as possible.'],blocks:['حرّك وأدِر المكعبات لتكمل صفوفاً كاملة فتنفجر. المربعات لا تنزل إلا عند انفجار صف، وتنزل فقط إذا كان الفراغ تحتها مربعاً أو مربعين.','Move and rotate blocks to complete rows. Blocks only drop when a row explodes, and only if the gap below is 1–2 cells.'],flip:['اضغط في أي مكان لقلب الجاذبية بين الأرض والسقف، تفادَ الأشواك والتقط النجوم.','Tap anywhere to flip gravity between floor and ceiling, dodge spikes and grab stars.']};
 const clk=sel=>{const e=document.querySelector(sel);if(e)e.click();return!!e};
 const tgl=(g,k,n)=>{const e=document.querySelector('[data-game='+g+'][data-opt='+k+']');if(!e)return;e.click();setTimeout(()=>say(L(n[0],n[1])+': '+(e.classList.contains('on')||e.getAttribute('aria-checked')==='true'?'✓':'✗')),30)};
 const cyc=(g,k)=>{const bs=[...document.querySelectorAll('[data-game='+g+'][data-opt='+k+'] button')],i=bs.findIndex(b=>b.classList.contains('on'));if(bs.length){const n=bs[(i+1)%bs.length];n.click();say('⚡ '+n.textContent)}};
