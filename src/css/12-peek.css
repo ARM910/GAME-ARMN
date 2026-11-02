@@ -1,0 +1,5 @@
+
+#xoNameMe,#xoAvatarMe{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.cell{position:relative}
+.cell>i.pk{position:absolute;inset-inline-end:9px;bottom:9px;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.42);pointer-events:none;animation:pkIn .25s ease-out}
+@keyframes pkIn{from{opacity:0}to{opacity:1}}

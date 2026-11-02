@@ -1,0 +1,10 @@
+
+#xo .board .cell,#xo .board .cell:hover,#xo .board .cell:active,#xo .board .cell:focus,#xo .board .cell:focus-visible,#xo .board .cell:not(.fX):not(.fO):hover,#xo .board .cell:not(.fX):not(.fO):active{background:#16295e!important;background-image:none!important;border:1px solid rgba(140,190,255,.28)!important;box-shadow:none!important;outline:none!important;transform:none!important;filter:none!important;transition:none!important;-webkit-tap-highlight-color:transparent!important;-webkit-appearance:none;appearance:none;overflow:hidden}
+#xo .board .cell *,#xo .board .cell .mk,#xo .board .cell svg{filter:none!important;background:none!important;box-shadow:none!important}
+#xo .board .cell>i.pk{background:rgba(255,255,255,.42)!important}#xo .board .cell>i.pk2{background:#fff!important}
+#xo .board .cell.old .mk{animation:none!important;opacity:.45}
+#xo .board .cell.win.fX{background:#1d3f9c!important;border-color:#3b82f6!important}
+#xo .board .cell.win.fO{background:#5a1a2e!important;border-color:#ef4444!important}
+#xo .board .cell.tapglow{box-shadow:0 0 14px 1px rgba(110,170,255,.5)!important;border-color:#7fb4ff!important}
+#xo .board .cell.hint{border-color:#ffd36b!important;background:rgba(255,211,107,.18)!important;box-shadow:0 0 0 3px rgba(255,211,107,.55),0 0 24px rgba(255,211,107,.7),inset 0 0 20px rgba(255,211,107,.4)!important;animation:armnHintPulse .75s ease-in-out 3;position:relative;z-index:2}
+@keyframes armnHintPulse{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.07);filter:brightness(1.45)}}

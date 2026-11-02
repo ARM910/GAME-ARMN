@@ -1,0 +1,9 @@
+
+.hb-contact{display:flex;justify-content:center;gap:18px;padding:22px 4px 8px;order:5}
+.hb-foot{order:6}
+.hc{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.35);box-shadow:0 10px 22px -8px #000,inset 0 1px 0 rgba(255,255,255,.35);transition:transform .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
+.hc:hover,.hc:focus-visible{transform:translateY(-4px) scale(1.08);box-shadow:0 16px 28px -8px #000,0 0 18px -2px currentColor}
+.hc:active{transform:scale(.94)}
+.hc-m{background:linear-gradient(145deg,#ff5a4d,#b3261e)}
+.hc-w{background:linear-gradient(145deg,#3ee27f,#0f8a5f)}
+.hc-f{background:linear-gradient(145deg,#8b5bdf,#6026c4)}

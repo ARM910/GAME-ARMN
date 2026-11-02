@@ -1,0 +1,36 @@
+
+/* ===== Home: logo glows in several colours; X blue / O red with reflections ===== */
+@keyframes lgShift{to{background-position:300% 0}}
+@keyframes lgPulse{0%,100%{filter:drop-shadow(0 0 6px var(--g1,rgba(255,210,74,.55)))}50%{filter:drop-shadow(0 0 16px var(--g1,rgba(255,210,74,.9)))}}
+.hl-g span{background:linear-gradient(100deg,#ff6b8a,#ffd24a,#47f7b6,#4cc9ff,#ff6b8a)!important;background-size:300% 100%!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important;-webkit-text-fill-color:transparent!important;animation:lgShift 6s linear infinite,lgPulse 2.8s ease-in-out infinite!important;animation-delay:calc(var(--i)*-.4s)!important}
+.hl-a span:nth-child(1){color:#ff6b8a;--gl:255,107,138}.hl-a span:nth-child(2){color:#4cc9ff;--gl:76,201,255}.hl-a span:nth-child(3){color:#47f7b6;--gl:71,247,182}.hl-a span:nth-child(4){color:#ffd24a;--gl:255,210,74}
+.hl-by .x{color:#3d8bff;text-shadow:0 0 8px #3d8bff,0 0 18px #2f7bff;-webkit-box-reflect:none}
+.hl-by .o{color:#ff4a4a;text-shadow:0 0 8px #ff4a4a,0 0 18px #ee3b3b;-webkit-box-reflect:none}
+.pm-scene .xg{animation:pmFloat 7s ease-in-out infinite,sceneGlow 3s ease-in-out infinite!important}
+.pm-scene .og{animation:pmFloat 8s ease-in-out -3s infinite,sceneGlow 3.4s ease-in-out -1s infinite!important}
+@keyframes sceneGlow{0%,100%{opacity:.88}50%{opacity:1}}
+
+/* ===== X-O game: calm blue board, classic flat look, NO glow (page background is the shared aurora, see 39) ===== */
+#xo{position:relative;z-index:1}
+#xo{--line:rgba(150,195,255,.22);--panel:#12294f;--panel2:#183462;--mut:#9db8e0;--neon:#5f9bff}
+#xo .board{background:rgba(255,255,255,.04)!important;border:1.5px solid rgba(150,195,255,.28)!important;box-shadow:none!important}
+#xo .cell{background:rgba(110,160,240,.10)!important;border:1px solid rgba(150,195,255,.22)!important;box-shadow:none!important}
+#xo .cell:not(.fX):not(.fO):hover{background:rgba(110,160,240,.2)!important}
+#xo .cell.win.fX{background:rgba(47,123,255,.22)!important;border-color:#3b82f6!important;box-shadow:none!important}
+#xo .cell.win.fO{background:rgba(238,59,59,.2)!important;border-color:#ef4444!important;box-shadow:none!important}
+#xo .mk,#xo svg.mk,svg.mk{filter:none!important}
+#xo .mk .x,.mk .x{stroke:#3b82f6!important;filter:none!important}
+#xo .mk .o,.mk .o{stroke:#ef4444!important;filter:none!important}
+#xo .score .sb,#xo .score .sb.turn{background:rgba(255,255,255,.05)!important;border:1px solid rgba(150,195,255,.22)!important;box-shadow:none!important}
+#xo .score .sb.turn{border-color:rgba(150,195,255,.6)!important}
+#xo .sb.px .sym,#xo .score .sb.px .sym{color:#3b82f6!important;text-shadow:none!important}
+#xo .sb.po .sym,#xo .score .sb.po .sym{color:#ef4444!important;text-shadow:none!important}
+#xo .arena,html.imm #xo .arena{background:none!important;box-shadow:none!important;filter:none!important}
+#xo .xo-player b,#xo .xo-player:nth-child(1) b{text-shadow:none}
+#xo .xo-player:nth-child(1) b{color:#3b82f6}#xo .xo-player:nth-child(2) b{color:#ef4444}
+#xo .xo-player:nth-child(2) .xo-avatar,#xo .xo-player:nth-child(1) .xo-avatar{box-shadow:none}
+#xo .xo-players::after{background:none;-webkit-text-fill-color:#9db8e0;color:#9db8e0}
+#xo .btn{box-shadow:none}
+/* ===== use the screen ===== */
+#xo:not(.online-room) .board{width:min(100%,max(300px,calc(100dvh - 240px)),780px)!important;padding:2.2%!important;gap:2%!important}
+#xo:not(.online-room) .arena{min-height:0!important}

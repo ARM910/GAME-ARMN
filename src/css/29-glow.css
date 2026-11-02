@@ -1,0 +1,72 @@
+
+/* ===== luxury glow: starfield + frame auras + lightning ===== */
+body::after{content:none!important}
+
+/* frame auras */
+html .ring[class*="fr-"]:not(.fr-off){filter:drop-shadow(0 0 4px var(--aura,#7cc6ff)) drop-shadow(0 0 11px var(--aura,#7cc6ff))}
+html .ring.fr-fire,html .ring.fr-ice,html .ring.fr-thunder,html .ring.fr-neon,html .ring.fr-toxic,html .ring.fr-rainbow,html .ring.fr-galaxy,html .ring.fr-royal,html .ring.fr-ruby{--aura-on:1}
+@keyframes auraP{0%,100%{filter:drop-shadow(0 0 4px var(--aura)) drop-shadow(0 0 9px var(--aura))}50%{filter:drop-shadow(0 0 8px var(--aura)) drop-shadow(0 0 24px var(--aura))}}
+html .ring.fr-fire{animation:frSpin 3s linear infinite,frFlick 1.6s ease-in-out infinite,auraP 1.1s ease-in-out infinite}
+html .ring.fr-ice{animation:frSpin 5s linear infinite,frIce 2.4s ease-in-out infinite,auraP 2.2s ease-in-out infinite}
+html .ring.fr-thunder{animation:frSpin 2s linear infinite,frFlash 2.6s linear infinite,auraP .9s ease-in-out infinite}
+html .ring.fr-neon{animation:frSpin 2.5s linear infinite,frNeon 1.4s ease-in-out infinite,auraP 1.4s ease-in-out infinite}
+html .ring.fr-toxic{animation:frSpin 4s linear infinite,auraP 1.8s ease-in-out infinite}
+html .ring.fr-rainbow{animation:frSpin 1.8s linear infinite,auraP 1.6s ease-in-out infinite}
+html .ring.fr-galaxy{animation:frSpin 6s linear infinite,auraP 2.4s ease-in-out infinite}
+html .ring.fr-royal{animation:frSweep 2.2s linear infinite,auraP 2s ease-in-out infinite}
+html .ring.fr-ruby{animation:frSpin 3.5s linear infinite,frRuby 1.6s ease-in-out infinite,auraP 1.5s ease-in-out infinite}
+html .rk-avr.ring[class*="fr-"]{filter:drop-shadow(0 0 4px var(--aura,#7cc6ff));animation-duration:6s,3s,3s}
+/* lightning bolts around thunder + storm frames */
+@keyframes frBolt{0%,38%,100%{opacity:0}2%{opacity:1}4%{opacity:.1}6%{opacity:1}9%{opacity:0}40%{opacity:.95}43%{opacity:0}46%{opacity:1}50%{opacity:0}}
+html .ring.fr-thunder::before,html .ring.fr-storm::before{content:"";position:absolute;inset:-28%;pointer-events:none;z-index:4;background:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><filter id='g' x='-30%' y='-30%' width='160%' height='160%'><feGaussianBlur stdDeviation='1.4' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter></defs><g fill='none' stroke='%23fff7b0' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round' filter='url(%23g)'><polyline points='90,6 78,20 85,22 70,40 76,41 62,58'/><polyline points='10,94 22,80 15,78 30,60 24,59 38,42'/><polyline points='4,38 16,34 12,44 26,38'/><polyline points='96,66 84,70 88,78 74,76'/></g></svg>") center/100% 100% no-repeat;animation:frBolt 2.6s linear infinite}
+html .ring.fr-storm::before{animation-duration:3.4s;animation-delay:.7s}
+@media (prefers-reduced-motion:reduce){html .ring[class*="fr-"]{filter:none}html .ring.fr-thunder::before,html .ring.fr-storm::before{animation:none;opacity:0}}
+html .ring.fr-fire{--aura:#ff7a00}
+html .ring.fr-ice{--aura:#6fd8ff}
+html .ring.fr-thunder{--aura:#ffe44d}
+html .ring.fr-neon{--aura:#ff2bd6}
+html .ring.fr-toxic{--aura:#7dff3c}
+html .ring.fr-rainbow{--aura:#a8d8ff}
+html .ring.fr-galaxy{--aura:#9a5cff}
+html .ring.fr-royal{--aura:#ffc83c}
+html .ring.fr-ruby{--aura:#ff2d55}
+html .ring.fr-sakura{--aura:#ffa6c9}
+html .ring.fr-aurora{--aura:#5dffc3}
+html .ring.fr-lava{--aura:#ff5a1a}
+html .ring.fr-ocean{--aura:#2d9bff}
+html .ring.fr-emerald{--aura:#2fe38a}
+html .ring.fr-sapphire{--aura:#3d7bff}
+html .ring.fr-amethyst{--aura:#b36bff}
+html .ring.fr-topaz{--aura:#ffb62e}
+html .ring.fr-diamond{--aura:#bff3ff}
+html .ring.fr-plasma{--aura:#ff4df0}
+html .ring.fr-cyber{--aura:#00f0ff}
+html .ring.fr-shadow{--aura:#7a5cff}
+html .ring.fr-phoenix{--aura:#ff8a1f}
+html .ring.fr-dragon{--aura:#ff3b1f}
+html .ring.fr-storm{--aura:#8fa8ff}
+html .ring.fr-sunset{--aura:#ff7a59}
+html .ring.fr-candy{--aura:#ff7ad0}
+html .ring.fr-mintx{--aura:#6fffd0}
+html .ring.fr-frost{--aura:#b8ecff}
+html .ring.fr-blood{--aura:#ff1f3a}
+html .ring.fr-solar{--aura:#ffcf33}
+html .ring.fr-lunar{--aura:#cfd8ff}
+html .ring.fr-venom{--aura:#8dff1f}
+html .ring.fr-hologram{--aura:#7cf0ff}
+html .ring.fr-cosmos{--aura:#8a6bff}
+html .ring.fr-imperial{--aura:#ffd24a}
+html .ring.fr-samurai{--aura:#ff3b5a}
+html .ring.fr-oni{--aura:#ff2d2d}
+html .ring.fr-mythic{--aura:#ff9d3a}
+html .ring.fr-infinity{--aura:#c27bff}
+
+/* effects must show in the global ranking, in the match room and on low-power phones too */
+html .rk-avr.ring.fr-fire::before,html .rk-avr.ring.fr-fire::after,html .rk-avr.ring.fr-ice::before,html .rk-avr.ring.fr-ice::after,html .rk-avr.ring.fr-thunder::before,html .rk-avr.ring.fr-thunder::after,html .rk-avr.ring.fr-neon::before,html .rk-avr.ring.fr-neon::after,html .rk-avr.ring.fr-toxic::before,html .rk-avr.ring.fr-toxic::after,html .rk-avr.ring.fr-rainbow::before,html .rk-avr.ring.fr-rainbow::after,html .rk-avr.ring.fr-galaxy::before,html .rk-avr.ring.fr-galaxy::after,html .rk-avr.ring.fr-royal::before,html .rk-avr.ring.fr-royal::after,html .rk-avr.ring.fr-ruby::before,html .rk-avr.ring.fr-ruby::after,html .rk-avr.ring.fr-storm::before,html .rk-avr.ring.fr-storm::after{display:block!important}
+html.lowfx .ring.fr-fire::before,html.lowfx .ring.fr-fire::after,html.lowfx .ring.fr-ice::before,html.lowfx .ring.fr-ice::after,html.lowfx .ring.fr-thunder::before,html.lowfx .ring.fr-thunder::after,html.lowfx .ring.fr-neon::before,html.lowfx .ring.fr-neon::after,html.lowfx .ring.fr-toxic::before,html.lowfx .ring.fr-toxic::after,html.lowfx .ring.fr-rainbow::before,html.lowfx .ring.fr-rainbow::after,html.lowfx .ring.fr-galaxy::before,html.lowfx .ring.fr-galaxy::after,html.lowfx .ring.fr-royal::before,html.lowfx .ring.fr-royal::after,html.lowfx .ring.fr-ruby::before,html.lowfx .ring.fr-ruby::after,html.lowfx .ring.fr-storm::before,html.lowfx .ring.fr-storm::after{display:block!important}
+html .rk-avr.ring[class*="fr-"]:not(.fr-off){filter:drop-shadow(0 0 5px var(--aura,#7cc6ff)) drop-shadow(0 0 13px var(--aura,#7cc6ff))}
+html .xo-fr.ring[class*="fr-"]:not(.fr-off){filter:drop-shadow(0 0 6px var(--aura,#7cc6ff)) drop-shadow(0 0 16px var(--aura,#7cc6ff))}
+html .rk-avr.ring.fr-thunder::before,html .rk-avr.ring.fr-storm::before{inset:-22%}
+html .xo-fr.ring{overflow:visible!important}
+html .rk-row:has(.rk-avr.ring[class*="fr-"]){overflow:visible}
+html .xo-player.talking .xo-fr.ring[class*="fr-"]:not(.fr-off){filter:drop-shadow(0 0 8px #6fe3b0) drop-shadow(0 0 16px #6fe3b0)}
