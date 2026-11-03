@@ -1,0 +1,26 @@
+{
+  "social": {
+    "in": {
+      "$to": {
+        ".read": "auth != null && auth.uid === $to",
+        "$key": {
+          ".write": "auth != null && (auth.uid === $to || (newData.exists() && newData.child('from').val() === auth.uid && $key.endsWith(auth.uid)))",
+          ".validate": "newData.hasChildren(['k','from','t']) && newData.child('k').isString() && newData.child('from').isString() && newData.child('t').isNumber() && (!newData.child('n').exists() || newData.child('n').val().length <= 24) && (!newData.child('code').exists() || newData.child('code').val().length == 6)"
+        }
+      }
+    },
+    "fr": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "pres": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['t','s'])"
+      }
+    }
+  }
+}

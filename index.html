@@ -2400,6 +2400,7 @@ const XO=(()=>{
     const isFinal=!!opts2.final;
     if(!add&&!isFinal)return;
     xoCounted.wins+=add;                                  /* mark before await to avoid double count */
+    let path0='lb/online_xo/'+playerKey;
     try{
       const path='lb/online_xo/'+playerKey;
       const old=await window.armnOnlineApi.db('GET',path);
@@ -2408,16 +2409,24 @@ const XO=(()=>{
       if(isFinal&&!recent[onlineRoom]){recent[onlineRoom]=1;matches++}
       const keys=Object.keys(recent);
       if(keys.length>40)delete recent[keys[0]];
-      await putXo(path,{
+      const xoBody={
         name:rawName.slice(0,24),
         wins:Math.max(0,+((old&&old.wins)||0))+add,
         matches,
         recent,updatedAt:Date.now()
-      });
+      };
+      try{await putXo(path,xoBody)}
+      catch(e1){
+        /* denied (e.g. the username/claim link was broken by a rename or a manual edit): repair the links and retry once */
+        if(e1&&(e1.status===400||e1.status===401||e1.status===403)){
+          try{await window.armnOnlineApi.repair()}catch(_){}
+          try{await putXo(path,xoBody)}catch(e2){await window.armnOnlineApi.db('PATCH',path,xoBody)}
+        }else throw e1;
+      }
       if(window.armnLoadXoRank)loadXoRank();
     }catch(e){
       xoCounted.wins-=add;                                /* retry on next round/final */
-      onlineMsg(rankText('تعذّر حفظ الترتيب العالمي. راجع صلاحيات lb/online_xo في Firebase.','Could not save the global ranking. Check Firebase rules for lb/online_xo.'))}
+      try{console.warn('[GAME ARMN] ranking save failed',e&&e.status,path0)}catch(_){}onlineMsg(rankText('تعذّر حفظ الترتيب العالمي'+(e&&e.status?' (HTTP '+e.status+')':'')+'. راجع صلاحيات lb/online_xo في Firebase.','Could not save the global ranking'+(e&&e.status?' (HTTP '+e.status+')':'')+'. Check Firebase rules for lb/online_xo.'))}
   }
   function showRoomResult(info){
     const old=document.getElementById('xoResult');if(old)old.remove();
@@ -2498,6 +2507,9 @@ const XO=(()=>{
   };
   const openLobby=m=>{openSheet();lobbyMode(m)};
   window.armnXoLobby=openLobby;
+  /* friends: accept an invite = join by code with no typing; invite = make sure there is a waiting room first */
+  window.armnXoJoin=code=>{openLobby('join');const i=$('#xoRoomCode');if(i)i.value=String(code||'').toUpperCase();const b=$('#xoJoinRoom');if(b)b.click()};
+  window.armnXoCreate=()=>new Promise(res=>{if(onlineRoom){res(onlineRoom);return}openLobby('create');const b=$('#xoCreateRoom');if(b)b.click();let n=0;const iv=setInterval(()=>{if(onlineRoom||++n>40){clearInterval(iv);res(onlineRoom||null)}},200)});
   $$('[data-xo-mode]',onlinePanel).forEach(b=>b.addEventListener('click',()=>lobbyMode(b.dataset.xoMode)));
   $('#xoRoomCode').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'')});
   $('#xoRoomCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('#xoJoinRoom').click()});
@@ -2701,7 +2713,6 @@ ab.addEventListener('click',e=>{if(e.target===ab)close()});
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!ab.hidden)close()});
 document.addEventListener('langchange',fill);fill();})();
 applyLang();
-if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 })();
 
 </script>
@@ -3056,7 +3067,7 @@ async function db(m,path,body,o){
   return m==='GET'?r.json():null;
 }
 // Narrow bridge for the X-O game script, which runs in a separate closure.
-window.armnOnlineApi={get uid(){return sess&&sess.uid||null},get name(){const u=me();return u&&u.u||sess&&sess.u||'أنت'},get avatar(){const u=me();return u&&Number.isInteger(+u.avatar)?+u.avatar:0},get frame(){const u=me();return u?frOk(u.fr):''},get theme(){const u=me(),i=u&&u.eq?+u.eq.xo:0;return Number.isInteger(i)&&i>=0&&i<C.xo.length?i:0},db:(m,path,body,o)=>db(m,path,body,o)};
+window.armnOnlineApi={get uid(){return sess&&sess.uid||null},get name(){const u=me();return u&&u.u||sess&&sess.u||'أنت'},get avatar(){const u=me();return u&&Number.isInteger(+u.avatar)?+u.avatar:0},get frame(){const u=me();return u?frOk(u.fr):''},get theme(){const u=me(),i=u&&u.eq?+u.eq.xo:0;return Number.isInteger(i)&&i>=0&&i<C.xo.length?i:0},db:(m,path,body,o)=>db(m,path,body,o),repair:()=>repairLinks()};
 /* ---- player profile ---- */
 const AVATARS=['🧑🏻‍🎤','👩🏻‍🎤','🧑🏽‍🚀','👩🏽‍🚀','👨🏻‍💻','👩🏻‍💻','🧑🏼‍🎨','👩🏼‍🎨','🧔🏻‍♂️','👩🏽‍🦱','👦🏻','👧🏽','🧑🏿‍🎮','👩🏿‍🎮','🥷🏻','🤖','🦊','🐼','🦁','🐯','🐸','🐲','🦄','🦉','🐺','🦈','🐙','🦋','👑','💀','👽','🧛','🧙'];
 const AVATAR_PRICES=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,450,600,750,900,1050,1200,1350,1500,1800,2100,2400,2700,3000,3600,4500];
@@ -3709,7 +3720,21 @@ async function resolveEmail(idn){
 async function ensureClaim(){
   if(!sess||!goodName(sess.u))return;
   try{const rec=await db('GET','usernames/'+sess.u,undefined,{auth:false});
-   if(!rec){try{await db('PUT','claims/'+sess.uid,sess.u)}catch(e){}await db('PUT','usernames/'+sess.u,{uid:sess.uid,email:sess.email})}}catch(e){}
+   if(!rec){try{await db('PUT','claims/'+sess.uid,sess.u)}catch(e){}await db('PUT','usernames/'+sess.u,{uid:sess.uid,email:sess.email})}
+   else if(rec.uid!==sess.uid&&String(rec.email||'').toLowerCase()===String(sess.email||'').toLowerCase()){await repairLinks()}}catch(e){}
+}
+/* re-links usernames/<name> and claims/<uid> to this very account (same e-mail only) after a rename or a manual database edit */
+async function repairLinks(){
+  if(!sess||!goodName(sess.u))return false;
+  let fixed=false;
+  try{
+    const rec=await db('GET','usernames/'+sess.u,undefined,{auth:false});
+    const same=rec&&String(rec.email||'').toLowerCase()===String(sess.email||'').toLowerCase();
+    if(!rec||(rec.uid!==sess.uid&&same)){try{await db('PUT','usernames/'+sess.u,{uid:sess.uid,email:sess.email});fixed=true}catch(e){}}
+    else if(rec.uid!==sess.uid){try{console.warn('[GAME ARMN] usernames/'+sess.u+' belongs to another account (uid '+rec.uid+'); yours is '+sess.uid)}catch(_){}}
+  }catch(e){}
+  try{const c=await db('GET','claims/'+sess.uid);if(c!==sess.u){await db('PUT','claims/'+sess.uid,sess.u);fixed=true}}catch(e){}
+  return fixed;
 }
 async function finishLogin(c){
   sess.u=c.u;sv('sess',sess);cur=c.u;users={};users[cur]=c;
@@ -3763,6 +3788,8 @@ async function doRename(n){
   const old=sess.u,u=users[cur];sess.u=n;sv('sess',sess);delete users[cur];cur=n;u.u=n;users[n]=u;sv('prof',u);
   try{await db('DELETE','usernames/'+old)}catch(e){}
   try{await db('DELETE','lb/points/'+old)}catch(e){}
+  /* the online-wins record follows the player to the new name (merged if the new name already had one) */
+  try{const w=await db('GET','lb/online_xo/'+old);if(w&&typeof w==='object'){const ex=await db('GET','lb/online_xo/'+n);const nw=Object.assign({},w,{name:n});if(ex&&typeof ex==='object'){nw.wins=(+w.wins||0)+(+ex.wins||0);nw.matches=(+w.matches||0)+(+ex.matches||0);nw.recent=Object.assign({},ex.recent||{},w.recent||{})}await db('PUT','lb/online_xo/'+n,nw);await db('DELETE','lb/online_xo/'+old);try{window.armnRankBust&&window.armnRankBust()}catch(_){}}}catch(e){}
   await push();paint();try{window.armnRenderProfile&&window.armnRenderProfile()}catch(e){}
 }
 async function doForgot(idn){
@@ -4036,6 +4063,34 @@ window.addEventListener('DOMContentLoaded',()=>{const b=document.createElement('
 })();
 
 </script>
+<style id="armn-social">
+.ib{position:relative}
+.soc-bd{position:absolute;top:-4px;inset-inline-end:-4px;min-width:18px;height:18px;border-radius:9px;background:#ff4d5e;color:#fff;font:700 11px/18px sans-serif;text-align:center;padding:0 4px;box-shadow:0 0 0 2px rgba(20,14,34,.9);font-style:normal}
+.soc-bd[hidden]{display:none}
+.pdot.dnd{background:#ff7a59!important;box-shadow:0 0 8px #ff7a59!important;animation:none!important}
+.so-dnd{display:flex;align-items:center;gap:12px;padding:10px 12px;margin:0 0 10px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);cursor:pointer}
+.so-dnd input{width:20px;height:20px;accent-color:#ff7a59;flex:none}
+.so-dnd b{display:block;font-size:14px}.so-dnd small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.so-add{display:flex;gap:8px;margin:0 0 6px}
+.so-add input{flex:1;min-width:0;padding:11px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.25);color:inherit;font:inherit;direction:ltr;text-align:start}
+.so-msg{min-height:18px;margin:2px 2px 4px;font-size:12.5px;color:#ffe27a}
+.so-h{margin:14px 2px 6px;font:700 13px var(--display);color:#ffe27a}
+.so-row{display:grid;grid-template-columns:46px 1fr auto;align-items:center;gap:10px;padding:8px 10px;margin-bottom:6px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.so-row.req{border-color:rgba(255,210,60,.45);background:linear-gradient(90deg,rgba(255,210,60,.14),rgba(26,20,46,.85))}
+.so-av{display:block;width:44px;height:44px;border-radius:50%;overflow:hidden;flex:none}
+.so-av img,.so-av svg,.so-av>*{width:100%;height:100%;object-fit:cover}
+.so-it{min-width:0}.so-it b{display:block;font:700 14px var(--display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.so-it small{display:flex;align-items:center;color:var(--mut);font-size:12px;margin-top:2px}
+.so-ac{display:flex;gap:6px;align-items:center}
+.so-sm{padding:7px 12px!important;font-size:13px!important;min-height:0!important}
+.so-sm[disabled]{opacity:.4}
+.so-x{background:none;border:0;color:var(--mut);font-size:15px;padding:6px;cursor:pointer}
+.soc-inv{position:fixed;z-index:100000;top:calc(env(safe-area-inset-top,0px) + 10px);left:50%;transform:translateX(-50%);width:min(94vw,430px);display:grid;grid-template-columns:44px 1fr auto auto;gap:8px;align-items:center;padding:10px 12px;border-radius:18px;background:rgba(24,18,38,.97);border:1px solid rgba(255,210,60,.55);box-shadow:0 14px 44px rgba(0,0,0,.55);animation:socIn .3s ease}
+.soc-inv+.soc-inv{top:calc(env(safe-area-inset-top,0px) + 86px)}
+@keyframes socIn{from{opacity:0;transform:translate(-50%,-14px)}to{opacity:1;transform:translate(-50%,0)}}
+.rk-row{content-visibility:auto;contain-intrinsic-size:auto 58px}
+#xoInviteFriend{margin-inline-start:6px}
+</style>
 <script id="hub-js">
 /* GAME ARMN — hub layer: dashboard home, ranking with portraits, avatar picker, X-O chat, shortcuts.
    Runs after index.html's own scripts. It only reads through the small bridges (window.armnApp, window.armnOnlineApi)
@@ -4224,33 +4279,32 @@ async function resolveAv(rows) {
     if (r.name in RB.avc && r.name in RB.frc && Date.now() - (RB.avt[r.name] || 0) < 120000) { const cv = RB.avc[r.name]; r.av = isInt(cv) ? +cv : (isInt(r.av) ? +r.av : null); if (r.fr === undefined) r.fr = RB.frc[r.name]; return; }
     if (!validName(r.name)) { RB.avc[r.name] = null; RB.frc[r.name] = ''; r.av = isInt(r.av) ? +r.av : null; r.fr = r.fr || ''; return; }
     let v = null; try { const all = await allPts(); v = all && all[r.name] || null; } catch (e) {}
-    if (!v) { try { v = await dbGet('lb/points/' + r.name); } catch (e) {} }
+    if (!v && rows.length <= 60) { try { v = await dbGet('lb/points/' + r.name); } catch (e) {} }
     RB.avc[r.name] = v && isInt(v.av) ? +v.av : null; RB.frc[r.name] = frOk(v && v.fr); RB.avt[r.name] = Date.now();
     r.av = isInt(RB.avc[r.name]) ? +RB.avc[r.name] : (isInt(r.av) ? +r.av : null); if (r.fr === undefined) r.fr = RB.frc[r.name];
   }));
 }
 async function fetchBoard() {
   const c = RB.cache.wins; if (c && Date.now() - c.t < 45000) return c.rows;
-  let d; try { d = await dbGet('lb/online_xo', 'orderBy=%22wins%22&limitToLast=300'); } catch (e) { d = await dbGet('lb/online_xo'); }
+  let d; try { d = await dbGet('lb/online_xo', 'orderBy=%22wins%22&limitToLast=1000'); } catch (e) { d = await dbGet('lb/online_xo'); }
   const g = new Map();
   Object.entries(d || {}).forEach(([k, v]) => {
     if (!v || !Number.isFinite(+v.wins) || +v.wins <= 0) return;
     const name = String(v.name || k).slice(0, 24), o = g.get(name) || { score: 0, av: null, fr: undefined };
     o.score += +v.wins; if (isInt(v.av)) o.av = +v.av; g.set(name, o);
   });
-  const rows = [...g].map(([name, o]) => ({ name, score: o.score, av: o.av })).sort((a, b) => b.score - a.score || a.name.localeCompare(b.name)).slice(0, 300);
+  const rows = [...g].map(([name, o]) => ({ name, score: o.score, av: o.av })).sort((a, b) => b.score - a.score || a.name.localeCompare(b.name)).slice(0, 1000);
   await resolveAv(rows);
   RB.cache.wins = { t: Date.now(), rows };
   return rows;
 }
 const avWrap = r => { const a = '<span class="rk-av">' + window.armnRankAvatar(r.name, r.av) + '</span>'; return r.fr && r.fr !== 'none' ? '<span class="rk-avr ring fr-' + r.fr + '">' + a + '</span>' : a; };
-function rowsHtml(rows, opts) {
-  opts = opts || {};
-  const myName = APP.name, lim = opts.limit || 300;
-  return rows.slice(0, lim).map((r, i) =>
-    '<div class="rk-row r' + (i + 1) + (r.name === myName ? ' me' : '') + '"' + (validName(r.name) ? ' data-p="' + esc(r.name) + '" tabindex="0" role="button" aria-label="' + T('فتح بروفايل ', 'Open profile of ') + esc(r.name) + '"' : '') + '>' +
+function rowsHtml(rows, opts, from) {
+  opts = opts || {}; from = from || 0;
+  const myName = APP.name, lim = opts.limit || 1000;
+  return rows.slice(from, Math.min(lim, from + (opts.page || lim))).map((r, i0) => { const i = i0 + from; return     '<div class="rk-row r' + (i + 1) + (r.name === myName ? ' me' : '') + '"' + (validName(r.name) ? ' data-p="' + esc(r.name) + '" tabindex="0" role="button" aria-label="' + T('فتح بروفايل ', 'Open profile of ') + esc(r.name) + '"' : '') + '>' +
     '<span class="rk-n">' + (i + 1) + '</span>' + avWrap(r) + '<span class="rk-nm"><b><span class="rk-t">' + esc(r.name) + '</span></b></span>' +
-    '<span class="rk-sc">' + r.score + ' <small>' + T('فوز', 'wins') + '</small></span></div>').join('');
+    '<span class="rk-sc">' + r.score + ' <small>' + T('فوز', 'wins') + '</small></span></div>'; }).join('');
 }
 const skeleton = n => Array.from({ length: n }, () => '<div class="rk-row sk"><span class="rk-n"></span><span class="rk-av"></span><span class="rk-nm"><b></b></span><span class="rk-sc"></span></div>').join('');
 
@@ -4264,10 +4318,20 @@ function mountRank(host, o) {
     list.innerHTML = skeleton(Math.min(o.limit || 10, 6)); foot.innerHTML = '';
     try {
       const rows = await fetchBoard(); if (my !== st.busy) return;
-      list.innerHTML = rows.length ? rowsHtml(rows, o) : '<p class="hb-empty">' + T('لا يوجد ترتيب بعد — اربح أول مباراة أونلاين!', 'No ranking yet — win the first online match!') + '</p>';
+      const cap = Math.min(rows.length, o.limit || 1000), PG = 100;
+      let shown = o.more ? cap : Math.min(cap, PG);
+      list.innerHTML = rows.length ? rowsHtml(rows, Object.assign({}, o, { page: shown }), 0) : '<p class="hb-empty">' + T('لا يوجد ترتيب بعد — اربح أول مباراة أونلاين!', 'No ranking yet — win the first online match!') + '</p>';
       if (o.more && rows.length > (o.limit || 10)) foot.innerHTML = '<button type="button" class="hb-btn ghost block" data-act="rank">' + T('عرض التصنيف الكامل', 'Open full ranking') + ' ' + ic('chev', 'flipx') + '</button>';
+      else if (shown < cap) foot.innerHTML = '<button type="button" class="hb-btn ghost block" data-more>' + T('عرض المزيد', 'Show more') + ' (' + (cap - shown) + ')</button>';
       const me = APP.name && rows.findIndex(r => r.name === APP.name);
-      if (APP.loggedIn && me >= (o.limit || 10)) foot.insertAdjacentHTML('afterbegin', '<p class="rk-note">' + T('ترتيبك: #', 'Your rank: #') + (me + 1) + ' · ' + rows[me].score + ' ' + T('فوز', 'wins') + '</p>');
+      if (APP.loggedIn && me >= shown) foot.insertAdjacentHTML('afterbegin', '<p class="rk-note">' + T('ترتيبك: #', 'Your rank: #') + (me + 1) + ' · ' + rows[me].score + ' ' + T('فوز', 'wins') + '</p>');
+      if (!o.more && rows.length) foot.insertAdjacentHTML('afterbegin', '<p class="rk-note">' + T('عدد اللاعبين في التصنيف: ', 'Players in the ranking: ') + rows.length + '</p>');
+      host._rkMore = () => {
+        if (shown >= cap) return;
+        list.insertAdjacentHTML('beforeend', rowsHtml(rows, Object.assign({}, o, { page: PG }), shown)); shown = Math.min(cap, shown + PG);
+        const b = $('[data-more]', foot); if (b) { if (shown >= cap) b.remove(); else b.textContent = T('عرض المزيد', 'Show more') + ' (' + (cap - shown) + ')'; }
+      };
+      if (shown < cap && 'IntersectionObserver' in window) { const b = $('[data-more]', foot); if (b) { const io = new IntersectionObserver(es => { if (es.some(x => x.isIntersecting)) host._rkMore && host._rkMore(); }, { rootMargin: '300px' }); io.observe(b); } }
     } catch (e) {
       if (my !== st.busy) return;
       list.innerHTML = '<p class="hb-empty">' + T('تعذّر تحميل التصنيف. تحقق من الاتصال.', 'Could not load the ranking. Check your connection.') + '</p><button type="button" class="hb-btn ghost block" data-retry>' + T('إعادة المحاولة', 'Retry') + '</button>';
@@ -4275,6 +4339,7 @@ function mountRank(host, o) {
   }
   host.addEventListener('click', e => {
     if (e.target.closest('[data-retry]')) { load(); return; }
+    if (e.target.closest('[data-more]')) { host._rkMore && host._rkMore(); return; }
     const pr = e.target.closest('[data-p]'); if (pr && host.contains(pr)) openProfile(pr.dataset.p, o.back || null);
   });
   host.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-p]')) { e.preventDefault(); e.target.click(); } });
@@ -4319,7 +4384,10 @@ async function openProfile(name, back) {
     if (i >= 0 && i < 3) $('#pfRank', host).classList.add('pf-top');
   } catch (e) { $('#pfWins b', host).textContent = '—'; $('#pfRank b', host).textContent = '—'; }
   const act = $('.pf-act', host);
-  if (back) { act.innerHTML = '<button type="button" class="hb-btn ghost" data-pf-back>' + T('رجوع للتصنيف', 'Back to ranking') + '</button>'; act.addEventListener('click', e => { if (e.target.closest('[data-pf-back]')) back(); }); }
+  let abtn = '';
+  if (!mine && APP.loggedIn) abtn += '<button type="button" class="hb-btn primary" data-pf-add>' + ic('users') + ' ' + T('إضافة صديق', 'Add friend') + '</button>';
+  if (back) abtn += '<button type="button" class="hb-btn ghost" data-pf-back>' + T('رجوع للتصنيف', 'Back to ranking') + '</button>';
+  if (abtn) { act.innerHTML = abtn; act.addEventListener('click', e => { if (e.target.closest('[data-pf-back]')) { back(); return; } const ad = e.target.closest('[data-pf-add]'); if (ad) { ad.disabled = true; sendReq(name).then(m => { APP.say(m); ad.disabled = false; }); } }); }
 }
 
 window.armnOpenProfile = openProfile;
@@ -4336,7 +4404,7 @@ window.armnOpenProfile = openProfile;
 window.armnOpenRanking = () => {
   const host = D.createElement('div');
   sheet(T('التصنيف العالمي', 'Global ranking'), host, 'rank');
-  mountRank(host, { limit: 300, back: () => window.armnOpenRanking() });
+  mountRank(host, { limit: 1000, back: () => window.armnOpenRanking() });
 };
 
 /* ============================================================
@@ -4416,6 +4484,7 @@ function buildHub() {
   '<header class="xh-top">' +
     '<b class="xh-brandmini">GAME <i>ARMN</i></b>' +
     '<div class="xh-tools">' +
+      '<button type="button" class="ib" data-act="friends" aria-label="' + T('الأصدقاء', 'Friends') + '">' + ic('users') + '<i class="soc-bd" hidden></i></button>' +
       '<button type="button" class="ib" data-act="shop" aria-label="' + T('المتجر', 'Shop') + '">' + ic('bag') + '</button>' +
       '<button type="button" class="ib" data-act="avatar" aria-label="' + T('تغيير الصورة', 'Change portrait') + '">' + ic('image') + '</button>' +
       '<button type="button" class="ib" data-act="settings" aria-label="' + T('الإعدادات', 'Settings') + '">' + ic('gear') + '</button>' +
@@ -4524,6 +4593,7 @@ function act(a) {
     case 'myprofile': if (APP.loggedIn && APP.name) openProfile(APP.name); break;
     case 'accounts': { const h = D.createElement('div'); h.className = 'oc-list'; h.innerHTML = OWNER_LINKS.map(l => '<a class="st" target="_blank" rel="noopener noreferrer" href="' + esc(l[2]) + '">' + ic('user') + '<span>' + T(l[0], l[1]) + '</span></a>').join(''); sheet(T('حساباتي', 'My accounts'), h, 'small'); break; }
     case 'rank': window.armnOpenRanking(); break;
+    case 'friends': openFriends(); break;
     case 'notes': openNotes(); break;
     case 'settings': settingsSheet(); break;
     case 'help': helpSheet(); break;
@@ -4663,6 +4733,219 @@ addEventListener('keydown', e => {
   });
   const onXo = () => curHash() === 'xo';
   addEventListener('hashchange', () => { if (!onXo()) { setOpen(false); bubble.hidden = true; } });
+})();
+
+/* ============================================================
+   FRIENDS — requests, presence (online / in a match / do-not-disturb) and room invites
+   Firebase: social/in/<uid>/<type_fromUid>  (inbox: req, acc, unf, inv)
+             social/fr/<uid>/<friendUid>     (friends list, each user writes only their own)
+             social/pres/<uid>               ({t, s: on|play|dnd|off})
+   ============================================================ */
+const SOC = { fr: {}, pres: {}, inbox: {}, denied: 0, seen: new Set(), tickN: 0, host: null, lists: null, loadedFr: false };
+const sdb = (m, p, b, o) => API.db(m, 'social/' + p, b, o);
+const okUid = u => /^[A-Za-z0-9]{10,64}$/.test(String(u || ''));
+const myUid = () => API.uid;
+const isDnd = () => !!LS.get('dnd', false);
+const PRES_TTL = 90000, INV_TTL = 180000;
+const myStatus = () => isDnd() ? 'dnd' : ((window.armnXoState && window.armnXoState.room) ? 'play' : 'on');
+function presOf(uid) {
+  const p = SOC.pres[uid];
+  if (!p || p.s === 'off' || !(+p.t > 0) || Date.now() - +p.t > PRES_TTL) return 'off';
+  return p.s === 'dnd' ? 'dnd' : (p.s === 'play' ? 'play' : 'on');
+}
+const PST = {
+  on: ['on', T('متصل', 'Online')],
+  play: ['play', T('يلعب مباراة', 'In a match')],
+  dnd: ['dnd', T('متصل — غير متاح', 'Online — unavailable')],
+  off: ['off', T('غير متصل', 'Offline')]
+};
+function socDenied(e) {
+  if (e && (e.status === 401 || e.status === 403) && !SOC.denied++) {
+    APP.say(T('نظام الأصدقاء يحتاج نشر قواعد Firebase الجديدة (ملف FIREBASE_RULES_FRIENDS.json)', 'Friends need the new Firebase rules published (FIREBASE_RULES_FRIENDS.json)'));
+  }
+}
+async function beat(off) {
+  if (!APP.loggedIn || !myUid()) return;
+  try { await sdb('PUT', 'pres/' + myUid(), { t: Date.now(), s: off ? 'off' : myStatus() }, off ? { ka: true } : undefined); } catch (e) { socDenied(e); }
+}
+async function loadFriends() {
+  const me = myUid(); if (!me) return;
+  try { const d = await sdb('GET', 'fr/' + me); SOC.fr = {}; Object.entries(d || {}).forEach(([u, f]) => { if (okUid(u) && f && typeof f === 'object') SOC.fr[u] = { n: String(f.n || '').slice(0, 24), av: isInt(f.av) ? +f.av : null, t: +f.t || 0 }; }); SOC.loadedFr = true; } catch (e) { socDenied(e); }
+}
+async function loadPres() {
+  const ids = Object.keys(SOC.fr).slice(0, 80);
+  await Promise.all(ids.map(async u => { try { SOC.pres[u] = await sdb('GET', 'pres/' + u) || null; } catch (e) { socDenied(e); } }));
+}
+function paintBadge() {
+  const now = Date.now();
+  const n = Object.values(SOC.inbox).filter(v => v && (v.k === 'req' || (v.k === 'inv' && now - (+v.t || 0) < INV_TTL))).length;
+  $$('.soc-bd').forEach(b => { b.hidden = !n; b.textContent = n > 9 ? '9+' : String(n); });
+}
+async function pollInbox() {
+  const me = myUid(); if (!me) return;
+  let d; try { d = await sdb('GET', 'in/' + me); } catch (e) { socDenied(e); return; }
+  d = d || {}; SOC.inbox = d;
+  const now = Date.now(); let changed = false;
+  for (const [key, it] of Object.entries(d)) {
+    if (!it || typeof it !== 'object' || !okUid(it.from)) continue;
+    const del = () => sdb('DELETE', 'in/' + me + '/' + key).catch(() => {});
+    if (it.k === 'acc') { try { await sdb('PUT', 'fr/' + me + '/' + it.from, { n: String(it.n || '').slice(0, 24), av: isInt(it.av) ? +it.av : null, t: now }); } catch (e) {} await del(); delete SOC.inbox[key]; changed = true; }
+    else if (it.k === 'unf') { try { await sdb('DELETE', 'fr/' + me + '/' + it.from); } catch (e) {} delete SOC.fr[it.from]; await del(); delete SOC.inbox[key]; changed = true; }
+    else if (it.k === 'inv') {
+      if (now - (+it.t || 0) > INV_TTL || isDnd()) { await del(); delete SOC.inbox[key]; }
+      else showInvite(key, it);
+    }
+  }
+  if (changed) await loadFriends();
+  paintBadge(); renderFriends();
+}
+function showInvite(key, it) {
+  const tag = key + ':' + it.t; if (SOC.seen.has(tag)) return; SOC.seen.add(tag);
+  const el = D.createElement('div'); el.className = 'soc-inv'; el.setAttribute('role', 'alertdialog');
+  el.innerHTML = '<span class="so-av">' + window.armnRankAvatar(String(it.n || ''), isInt(it.av) ? +it.av : null) + '</span>' +
+    '<div class="so-it"><b>' + esc(String(it.n || '?').slice(0, 24)) + '</b><small>' + T('يدعوك للعب X-O 🎮', 'invites you to play X-O 🎮') + '</small></div>' +
+    '<button type="button" class="hb-btn primary so-sm" data-a>' + T('قبول', 'Accept') + '</button><button type="button" class="hb-btn ghost so-sm" data-d>' + T('رفض', 'Decline') + '</button>';
+  D.body.appendChild(el);
+  try { navigator.vibrate && navigator.vibrate([120, 60, 120]); } catch (e) {}
+  const gone = () => { try { el.remove(); } catch (e) {} };
+  const kill = setTimeout(() => { gone(); sdb('DELETE', 'in/' + myUid() + '/' + key).catch(() => {}); }, Math.max(5000, INV_TTL - (Date.now() - (+it.t || Date.now()))));
+  $('[data-d]', el).onclick = () => { clearTimeout(kill); gone(); sdb('DELETE', 'in/' + myUid() + '/' + key).catch(() => {}); delete SOC.inbox[key]; paintBadge(); };
+  $('[data-a]', el).onclick = async () => {
+    clearTimeout(kill); gone(); sdb('DELETE', 'in/' + myUid() + '/' + key).catch(() => {}); delete SOC.inbox[key]; paintBadge();
+    const code = String(it.code || '').toUpperCase(); if (!/^[A-Z0-9]{6}$/.test(code)) return;
+    if (window.armnXoState && window.armnXoState.room) { APP.say(T('اخرج من غرفتك الحالية أولاً', 'Leave your current room first')); return; }
+    let room = null; try { room = await API.db('GET', 'rooms/' + code); } catch (e) {}
+    if (!room || room.left || (room.playerO && room.playerO !== API.uid)) { APP.say(T('انتهت الدعوة أو الغرفة ممتلئة', 'The invite expired or the room is full')); return; }
+    closeSheet();
+    if (window.armnXoJoin) window.armnXoJoin(code);
+  };
+}
+async function sendReq(name) {
+  name = String(name || '').trim().toLowerCase();
+  if (!APP.loggedIn || !myUid()) return T('سجّل دخولك أولاً', 'Log in first');
+  if (!validName(name)) return T('اكتب اسم لاعب صحيح', 'Enter a valid player name');
+  if (name === String(APP.name || '').toLowerCase()) return T('هذا اسمك أنت 😄', 'That is your own name 😄');
+  let rec = null; try { rec = await API.db('GET', 'usernames/' + name, undefined, { auth: false }); } catch (e) { return T('تعذّر البحث، تحقق من الاتصال', 'Search failed, check your connection'); }
+  if (!rec || !okUid(rec.uid)) return T('ما لقيت لاعب بهذا الاسم', 'No player with that name');
+  if (!SOC.loadedFr) await loadFriends();
+  if (SOC.fr[rec.uid]) return T('هذا اللاعب صديقك بالفعل ✓', 'Already your friend ✓');
+  const theirs = Object.entries(SOC.inbox).find(([k, v]) => v && v.k === 'req' && v.from === rec.uid);
+  if (theirs) { await acceptReq(theirs[0], theirs[1]); return T('تمت إضافة ' + name + ' ✓', name + ' added ✓'); }
+  try { await sdb('PUT', 'in/' + rec.uid + '/req_' + myUid(), { k: 'req', from: myUid(), n: API.name, av: API.avatar, t: Date.now() }); }
+  catch (e) { socDenied(e); return T('تعذّر إرسال الطلب', 'Could not send the request'); }
+  return T('تم إرسال طلب الصداقة إلى ' + name + ' ✓', 'Friend request sent to ' + name + ' ✓');
+}
+async function acceptReq(key, it) {
+  const me = myUid(); if (!me || !it || !okUid(it.from)) return;
+  try {
+    await sdb('PUT', 'fr/' + me + '/' + it.from, { n: String(it.n || '').slice(0, 24), av: isInt(it.av) ? +it.av : null, t: Date.now() });
+    await sdb('PUT', 'in/' + it.from + '/acc_' + me, { k: 'acc', from: me, n: API.name, av: API.avatar, t: Date.now() });
+    SOC.fr[it.from] = { n: String(it.n || '').slice(0, 24), av: isInt(it.av) ? +it.av : null, t: Date.now() };
+  } catch (e) { socDenied(e); APP.say(T('تعذّر قبول الطلب', 'Could not accept the request')); return; }
+  await sdb('DELETE', 'in/' + me + '/' + key).catch(() => {}); delete SOC.inbox[key];
+  paintBadge(); loadPres().then(renderFriends);
+}
+async function declineReq(key) { try { await sdb('DELETE', 'in/' + myUid() + '/' + key); } catch (e) {} delete SOC.inbox[key]; paintBadge(); renderFriends(); }
+async function removeFriend(uid) {
+  const me = myUid(); if (!me || !okUid(uid)) return;
+  try { await sdb('DELETE', 'fr/' + me + '/' + uid); } catch (e) { socDenied(e); }
+  sdb('PUT', 'in/' + uid + '/unf_' + me, { k: 'unf', from: me, n: API.name, t: Date.now() }).catch(() => {});
+  delete SOC.fr[uid]; renderFriends();
+}
+async function inviteFriend(uid) {
+  const f = SOC.fr[uid]; if (!f) return null;
+  try { SOC.pres[uid] = await sdb('GET', 'pres/' + uid) || null; } catch (e) {}
+  const st = presOf(uid), nm = f.n || '';
+  if (st === 'off') return T(nm + ' غير متصل الآن', nm + ' is offline');
+  if (st === 'dnd') return T(nm + ' غير متاح الآن', nm + ' is unavailable right now');
+  if (st === 'play') return T(nm + ' يلعب مباراة الآن', nm + ' is in a match right now');
+  let code = window.armnXoState && window.armnXoState.room;
+  if (code) {
+    let room = null; try { room = await API.db('GET', 'rooms/' + code); } catch (e) {}
+    if (!room || room.left) code = null;
+    else if (room.playerO && room.playerX && room.playerO !== API.uid && room.playerX !== API.uid) return T('غرفتك ممتلئة بالفعل', 'Your room is already full');
+    else if (room.playerO && room.playerX) return T('غرفتك فيها لاعبان بالفعل', 'Your room already has two players');
+  }
+  if (!code) {
+    closeSheet();
+    if (!window.armnXoCreate) return T('تعذّر إنشاء الغرفة', 'Could not create a room');
+    code = await window.armnXoCreate();
+    if (!code) return T('تعذّر إنشاء الغرفة', 'Could not create a room');
+  }
+  try { await sdb('PUT', 'in/' + uid + '/inv_' + myUid(), { k: 'inv', from: myUid(), n: API.name, av: API.avatar, code, t: Date.now() }); }
+  catch (e) { socDenied(e); return T('تعذّر إرسال الدعوة', 'Could not send the invite'); }
+  return T('تم إرسال الدعوة إلى ' + nm + ' — بانتظار قبوله ⏳', 'Invite sent to ' + nm + ' — waiting for them ⏳');
+}
+const ORD = { on: 0, play: 1, dnd: 2, off: 3 };
+function renderFriends() {
+  if (!SOC.host || !D.body.contains(SOC.host)) { SOC.host = null; return; }
+  const lists = SOC.lists; if (!lists) return;
+  const reqs = Object.entries(SOC.inbox).filter(([k, v]) => v && v.k === 'req' && okUid(v.from));
+  const fr = Object.entries(SOC.fr).map(([uid, f]) => ({ uid, n: f.n, av: f.av, st: presOf(uid) })).sort((a, b) => ORD[a.st] - ORD[b.st] || a.n.localeCompare(b.n));
+  let h = '';
+  if (reqs.length) h += '<h4 class="so-h">' + T('طلبات الصداقة', 'Friend requests') + ' (' + reqs.length + ')</h4>' + reqs.map(([k, v]) =>
+    '<div class="so-row req" data-k="' + esc(k) + '"><span class="so-av">' + window.armnRankAvatar(String(v.n || ''), isInt(v.av) ? +v.av : null) + '</span><div class="so-it"><b>' + esc(String(v.n || '?').slice(0, 24)) + '</b><small>' + T('يريد إضافتك', 'wants to add you') + '</small></div><div class="so-ac"><button type="button" class="hb-btn primary so-sm" data-ok>' + T('قبول', 'Accept') + '</button><button type="button" class="hb-btn ghost so-sm" data-no>' + T('رفض', 'Decline') + '</button></div></div>').join('');
+  h += '<h4 class="so-h">' + T('أصدقائي', 'My friends') + ' (' + fr.length + ')</h4>';
+  h += fr.length ? fr.map(f => {
+    const s = PST[f.st];
+    return '<div class="so-row" data-u="' + esc(f.uid) + '"><span class="so-av">' + window.armnRankAvatar(f.n, f.av) + '</span><div class="so-it"><b>' + esc(f.n || '?') + '</b><small><i class="pdot ' + s[0] + '"></i>' + s[1] + '</small></div><div class="so-ac"><button type="button" class="hb-btn primary so-sm" data-inv ' + (f.st === 'on' ? '' : 'disabled') + '>' + T('🎮 دعوة', '🎮 Invite') + '</button><button type="button" class="so-x" data-rm aria-label="' + T('حذف الصديق', 'Remove friend') + '">✕</button></div></div>';
+  }).join('') : '<p class="hb-empty">' + T('ما عندك أصدقاء بعد — اكتب اسم لاعب فوق وأرسل له طلب.', 'No friends yet — type a player name above and send a request.') + '</p>';
+  lists.innerHTML = h;
+}
+function openFriends() {
+  if (needLogin(T('سجّل دخولك لاستخدام الأصدقاء', 'Log in to use friends'))) return;
+  const host = D.createElement('div'); host.className = 'so';
+  host.innerHTML =
+    '<label class="so-dnd"><input type="checkbox" id="soDnd"><span><b>' + T('غير متاح (لا تزعجني)', 'Unavailable (do not disturb)') + '</b><small>' + T('تظهر متصل لكن ما توصلك دعوات', 'You show as online but receive no invites') + '</small></span></label>' +
+    '<form class="so-add" autocomplete="off"><input type="text" id="soName" maxlength="16" placeholder="' + T('اسم اللاعب لإضافته…', 'Player name to add…') + '" autocapitalize="off" spellcheck="false"><button type="submit" class="hb-btn primary">' + T('إرسال طلب', 'Send request') + '</button></form>' +
+    '<p class="so-msg" id="soMsg" role="status" aria-live="polite"></p>' +
+    '<div class="rk-legend"><span><i class="pdot on"></i>' + PST.on[1] + '</span><span><i class="pdot play"></i>' + PST.play[1] + '</span><span><i class="pdot dnd"></i>' + T('غير متاح', 'Unavailable') + '</span><span><i class="pdot off"></i>' + PST.off[1] + '</span></div>' +
+    '<div id="soLists"></div>';
+  sheet(T('الأصدقاء', 'Friends'), host, 'friends');
+  SOC.host = host; SOC.lists = $('#soLists', host);
+  const dnd = $('#soDnd', host); dnd.checked = isDnd();
+  dnd.addEventListener('change', () => { LS.set('dnd', dnd.checked); beat(); APP.say(dnd.checked ? T('أنت الآن غير متاح — لن تصلك دعوات', 'You are now unavailable — no invites') : T('أنت الآن متاح للدعوات', 'You can receive invites again')); });
+  const msg = t => { $('#soMsg', host).textContent = t || ''; };
+  $('.so-add', host).addEventListener('submit', async e => {
+    e.preventDefault(); const inp = $('#soName', host), b = $('.so-add button', host); const v = inp.value;
+    if (!v.trim()) return; b.disabled = true; msg(T('جارٍ الإرسال…', 'Sending…'));
+    try { msg(await sendReq(v)); inp.value = ''; } finally { b.disabled = false; }
+    renderFriends();
+  });
+  host.addEventListener('click', async e => {
+    const row = e.target.closest('.so-row'); if (!row) return;
+    if (e.target.closest('[data-ok]')) { const k = row.dataset.k; const it = SOC.inbox[k]; if (it) await acceptReq(k, it); renderFriends(); }
+    else if (e.target.closest('[data-no]')) { declineReq(row.dataset.k); }
+    else if (e.target.closest('[data-inv]')) { const b = e.target.closest('[data-inv]'); b.disabled = true; const m = await inviteFriend(row.dataset.u); if (m) { msg(m); APP.say(m); } b.disabled = false; renderFriends(); }
+    else if (e.target.closest('[data-rm]')) { if (confirm(T('حذف هذا الصديق؟', 'Remove this friend?'))) removeFriend(row.dataset.u); }
+    else if (row.dataset.u && SOC.fr[row.dataset.u] && validName(SOC.fr[row.dataset.u].n)) { openProfile(SOC.fr[row.dataset.u].n, () => openFriends()); }
+  });
+  renderFriends();
+  (async () => { await pollInbox(); await loadFriends(); await loadPres(); renderFriends(); })();
+  const iv = setInterval(async () => { if (!SOC.host || !D.body.contains(SOC.host)) { clearInterval(iv); return; } await pollInbox(); await loadPres(); renderFriends(); }, 8000);
+}
+window.armnFriendsOpen = openFriends;
+async function socTick() {
+  if (D.hidden || !APP.loggedIn || !myUid()) return;
+  SOC.tickN++;
+  if (SOC.tickN % 3 === 1) { await beat(); }
+  await pollInbox();
+  if (SOC.tickN % 3 === 1 && !SOC.loadedFr) await loadFriends();
+}
+(function socBoot() {
+  const hook = () => {
+    const sh = $('#xoShareRoom');
+    if (sh && !$('#xoInviteFriend')) {
+      const b = D.createElement('button'); b.type = 'button'; b.id = 'xoInviteFriend'; b.className = sh.className;
+      b.textContent = '👥 ' + T('دعوة صديق', 'Invite a friend'); b.addEventListener('click', () => openFriends());
+      sh.insertAdjacentElement('afterend', b);
+    }
+  };
+  hook(); setTimeout(hook, 1500);
+  setInterval(socTick, 7000); setTimeout(socTick, 1800);
+  D.addEventListener('visibilitychange', () => { if (D.hidden) beat(true); else { beat(); socTick(); } });
+  addEventListener('pagehide', () => beat(true));
+  addEventListener('online', () => beat());
 })();
 
 /* ============================================================

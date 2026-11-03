@@ -1,4 +1,4 @@
-const CACHE = 'game-armn-v55';
+const CACHE = 'game-armn-v56';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', ...Array.from({length:15}, (_,i) => `./avatars/avatar-${String(i+1).padStart(2,'0')}.webp`)];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
